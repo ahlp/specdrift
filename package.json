@@ -1,5 +1,5 @@
 {
-  "name": "sdd",
+  "name": "@ahlp/sdd",
   "version": "0.1.0",
   "description": "Semantic OpenSpec validation CLI: compare specs against repository code using AI",
   "type": "module",
@@ -40,6 +40,18 @@
     "cli"
   ],
   "license": "MIT",
+  "author": "Arthur Pires",
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/ahlp/sdd.git"
+  },
+  "homepage": "https://gitlab.com/ahlp/sdd#readme",
+  "bugs": {
+    "url": "https://gitlab.com/ahlp/sdd/-/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "chalk": "^5.3.0",
     "commander": "^12.1.0",

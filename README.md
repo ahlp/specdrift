@@ -1,93 +1,355 @@
 # sdd
 
+> Semantic validation of [OpenSpec](https://github.com/Fission-AI/OpenSpec)
+> specs against real repository code, using a local or cloud AI provider.
 
-
-## Getting started
-
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+`sdd` complements the structural `openspec validate` command: instead of
+checking that spec files are well-formed, it asks an AI model to compare each
+requirement and scenario with the repository source and report drift.
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/ahlp/sdd.git
-git branch -M main
-git push -uf origin main
+sdd openspec              # command group (prints help)
+sdd openspec validate     # semantic validation
 ```
 
-## Integrate with your tools
+## Requirements
 
-* [Set up project integrations](https://gitlab.com/ahlp/sdd/-/settings/integrations)
+- Node.js >= 18
+- An AI provider:
+  - [LM Studio](https://lmstudio.ai/) running locally (recommended), or
+  - [Ollama](https://ollama.com/) running locally, or
+  - a DeepSeek API key
 
-## Collaborate with your team
+## Install
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+```bash
+npm install -g @ahlp/sdd
+# or run without installing
+npx @ahlp/sdd openspec validate
+```
 
-## Test and Deploy
+The package is published under the `@ahlp` scope because the bare npm name
+`sdd` is already taken. The installed command is still **`sdd`**.
 
-Use the built-in continuous integration in GitLab.
+## Quick start
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+From a repository that contains an `openspec/` directory:
 
-***
+```bash
+# Auto-detect a local provider (LM Studio, then Ollama)
+sdd openspec validate
 
-# Editing this README
+# Force a provider and model
+sdd openspec validate --provider ollama --model llama3.1
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+# Machine-readable report + fail CI on drift
+sdd openspec validate --format json --fail-on non-compliant
+```
 
-## Suggestions for a good README
+The default report is written to stdout in Markdown. Use `--output report.md`
+to write it to a file (colors are only used for TTY stdout).
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+## Expected project layout
 
-## Name
-Choose a self-explaining name for your project.
+```
+repo/
+├── openspec/
+│   ├── config.yaml                 # optional: schema, context, rules
+│   └── specs/
+│       └── decision-display/
+│           └── spec.md
+├── src/
+└── ...
+```
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+Each `spec.md` uses the OpenSpec structure:
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+```markdown
+## Purpose
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+One paragraph describing the capability.
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## Requirements
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+### Requirement: Display the decision
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+The system SHALL ...
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+#### Scenario: Render SIM
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+- **GIVEN** ...
+- **WHEN** ...
+- **THEN** ...
+```
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+Specs may be written in English, Portuguese, or mixed; the parser keys off the
+structural markers and `GIVEN`/`WHEN`/`THEN` labels.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+## Commands and flags
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+### `sdd openspec validate`
+
+| Flag                  | Description                                            | Default          |
+| --------------------- | ------------------------------------------------------ | ---------------- |
+| `--specs-dir <path>`  | Directory containing `openspec/` (or the `specs/` dir) | `./openspec`     |
+| `--root <path>`       | Repository root to scan                                | `process.cwd()`  |
+| `--provider <name>`   | `lmstudio` \| `ollama` \| `deepseek`                   | auto-detect      |
+| `--model <id>`        | Model id/name                                          | provider default |
+| `--base-url <url>`    | Provider endpoint override                             | provider default |
+| `--api-key <key>`     | DeepSeek API key (prefer `DEEPSEEK_API_KEY`)           | env              |
+| `--format <fmt>`      | `markdown` \| `json` \| `text`                         | `markdown`       |
+| `--output <file>`     | Write the report to a file; `-` is stdout              | `-`              |
+| `--fail-on <level>`   | `error` \| `warning` \| `non-compliant`                | `non-compliant`  |
+| `--include <glob...>` | Only scan matching files                               | all              |
+| `--exclude <glob...>` | Extra ignore globs                                     | none             |
+| `--max-tokens <n>`    | Cap per-request output tokens                          | provider default |
+| `--concurrency <n>`   | Parallel spec requests                                 | `2`              |
+| `--verbose`           | Print prompts, raw responses and debug details         | off              |
+
+The repository scan honors `.gitignore` and always skips VCS directories, build
+output, lockfiles, binaries, and `openspec/` itself.
+
+## Providers
+
+### LM Studio (local)
+
+1. Load a model in LM Studio.
+2. Start the local server (default `http://localhost:1234`).
+3. Run `sdd openspec validate --provider lmstudio`.
+
+Override the endpoint with `--base-url` or `SDD_LMSTUDIO_BASE_URL`. No API key
+is required.
+
+### Ollama (local)
+
+```bash
+ollama serve
+ollama pull llama3.1
+sdd openspec validate --provider ollama --model llama3.1
+```
+
+The native `/api/chat` endpoint is used by default. A base URL ending in `/v1`
+switches to Ollama's OpenAI-compatible endpoint. Environment overrides:
+`SDD_OLLAMA_BASE_URL`, `SDD_OLLAMA_MODEL`.
+
+### DeepSeek (cloud)
+
+```bash
+export DEEPSEEK_API_KEY=sk-...
+sdd openspec validate --provider deepseek --model deepseek-chat
+```
+
+Defaults to `https://api.deepseek.com/v1` and `deepseek-chat`.
+Environment overrides: `SDD_DEEPSEEK_API_KEY`, `SDD_DEEPSEEK_BASE_URL`,
+`SDD_DEEPSEEK_MODEL`.
+
+> **Privacy:** LM Studio and Ollama keep repository content on your machine.
+> DeepSeek uploads the selected source files to a third party. `sdd` prints a
+> warning when a cloud provider is selected.
+
+### Provider auto-detection
+
+When `--provider` and `SDD_PROVIDER` are absent, `sdd` probes:
+
+1. LM Studio (`http://localhost:1234`)
+2. Ollama (`http://localhost:11434`)
+3. DeepSeek (only if an API key is available)
+
+If none is reachable it exits with a clear message and code `4`.
+
+## Configuration
+
+Precedence, highest first:
+
+1. CLI flags
+2. `SDD_*` environment variables
+3. `.sddrc` / `.sddrc.json` / `.sddrc.yaml` / `.sddrc.yml` in the repository root
+4. Built-in defaults
+
+`.sddrc` may be JSON or YAML:
+
+```yaml
+provider: ollama
+model: llama3.1
+specsDir: ./openspec
+format: markdown
+failOn: non-compliant
+concurrency: 2
+includeTests: true
+maxContextBytes: 120000
+exclude:
+  - "**/*.generated.ts"
+```
+
+Unknown keys are rejected so typos are caught early.
+
+### Environment variables
+
+| Variable                                    | Purpose                              |
+| ------------------------------------------- | ------------------------------------ |
+| `SDD_PROVIDER`                              | `lmstudio` \| `ollama` \| `deepseek` |
+| `SDD_MODEL`                                 | Model override                       |
+| `SDD_BASE_URL`                              | Generic endpoint override            |
+| `SDD_SPECS_DIR`                             | OpenSpec directory                   |
+| `SDD_FORMAT`                                | Report format                        |
+| `SDD_FAIL_ON`                               | Failure threshold                    |
+| `SDD_CONCURRENCY`                           | Parallel spec requests               |
+| `SDD_MAX_TOKENS`                            | Output token cap                     |
+| `SDD_TEMPERATURE`                           | Sampling temperature                 |
+| `SDD_MAX_FILE_BYTES`                        | Per-file scan budget                 |
+| `SDD_MAX_TOTAL_BYTES`                       | Total scan budget                    |
+| `SDD_MAX_CONTEXT_BYTES`                     | Prompt context budget                |
+| `SDD_INCLUDE_TESTS`                         | Include test files in the scan       |
+| `SDD_TIMEOUT_MS`                            | Provider request timeout             |
+| `SDD_LMSTUDIO_BASE_URL`                     | LM Studio endpoint                   |
+| `SDD_OLLAMA_BASE_URL`                       | Ollama endpoint                      |
+| `SDD_OLLAMA_MODEL`                          | Ollama model                         |
+| `SDD_DEEPSEEK_BASE_URL`                     | DeepSeek endpoint                    |
+| `SDD_DEEPSEEK_MODEL`                        | DeepSeek model                       |
+| `SDD_DEEPSEEK_API_KEY` / `DEEPSEEK_API_KEY` | DeepSeek key                         |
+
+Project-wide guidance in `openspec/config.yaml` (`context`, `rules`,
+`operations`) is included in the prompt.
+
+## Reports
+
+Three formats are available:
+
+- **markdown** (default) — a summary table followed by one section per
+  capability, with evidence and suggested fixes.
+- **json** — stable machine-readable output with `schemaVersion: 1`, finding
+  statuses and drift classifications.
+- **text** — compact colorized terminal output.
+
+Each finding reports:
+
+| Field            | Meaning                                                                    |
+| ---------------- | -------------------------------------------------------------------------- |
+| `status`         | `compliant`, `partial`, `non-compliant`, `not-implemented`, `inconclusive` |
+| `classification` | Drift class `A`–`G`, or `null` when compliant                              |
+| `evidence.files` | Repository paths used as evidence                                          |
+| `evidence.note`  | Short justification                                                        |
+| `fix`            | Suggested action (report-only; `sdd` never edits files)                    |
+
+### Drift taxonomy
+
+| Class | Meaning                                                       |
+| ----- | ------------------------------------------------------------- |
+| A     | Spec drift — code evolved; update the spec                    |
+| B     | Code drift — spec changed; update the code                    |
+| C     | Green-field — new spec, no implementation                     |
+| D     | Regression/bug — code violates the scenario                   |
+| E     | Orphan/dead code — requirement removed, code remains          |
+| F     | Contract/schema mismatch — payload, HTTP, unit or type drift  |
+| G     | Split-brain — spec and code conflict; needs human arbitration |
+
+## Exit codes
+
+| Code | Meaning                                                |
+| ---- | ------------------------------------------------------ |
+| `0`  | Validation passed                                      |
+| `1`  | Findings reached the `--fail-on` threshold             |
+| `2`  | Usage or configuration error                           |
+| `3`  | No OpenSpec project/specs found                        |
+| `4`  | Provider unreachable, or every spec failed to validate |
+
+`--fail-on` levels:
+
+- `error` — fail only when validation could not run for a spec.
+- `non-compliant` (default) — fail on `non-compliant` or `not-implemented`.
+- `warning` — also fail on `partial`, `inconclusive`, or spec errors.
+
+## How it works
+
+```
+discover openspec/specs
+        ↓
+parse Purpose / Requirements / Scenarios
+        ↓
+scan repository (.gitignore-aware, token-budgeted)
+        ↓
+rank files by relevance to each spec and build the prompt
+        ↓
+call the AI provider
+        ↓
+validate the response with zod and reconcile one finding per scenario
+        ↓
+aggregate → report → exit code
+```
+
+Missing findings are not silently dropped: each spec scenario without a model
+finding is reported as `inconclusive`, so coverage is always explicit.
+
+## Library usage
+
+`sdd` is also an npm library:
+
+```ts
+import { resolve } from "node:path";
+import {
+  discoverOpenspec,
+  loadConfig,
+  renderReport,
+  resolveProvider,
+  scanRepository,
+  validateProject,
+} from "@ahlp/sdd";
+
+const root = process.cwd();
+const config = await loadConfig({ root });
+const project = await discoverOpenspec(resolve(root, config.specsDir));
+const repo = await scanRepository({
+  root,
+  include: config.include,
+  exclude: config.exclude,
+  includeTests: config.includeTests,
+});
+const provider = await resolveProvider({
+  provider: config.provider,
+  model: config.model,
+  baseUrl: config.baseUrl,
+  apiKey: config.apiKey,
+});
+
+const report = await validateProject({
+  project,
+  repo,
+  provider,
+  concurrency: config.concurrency,
+});
+
+console.log(renderReport(config.format, report));
+```
+
+All pipeline stages and the three renderers are exported from the package root.
+
+## Development
+
+```bash
+npm install
+npm run build        # compile to dist/
+npm test             # vitest
+npm run typecheck    # src + tests
+```
+
+The test suite includes an end-to-end run with a mock LM Studio server. A manual
+runner validates a real project layout:
+
+```bash
+npm run build
+node test/manual/run-fixture.mjs /path/to/project
+```
+
+## Limitations (v1)
+
+- Report-only: it suggests fixes but never edits code or specs.
+- Targets `openspec/specs/**`; the `changes/` proposal workflow is not covered.
+- Model quality and context budget affect accuracy; truncated or omitted files
+  are marked in the prompt.
+- The published package has no runtime audit advisories. Dev tooling
+  (Vitest 2/Vite) currently reports audit advisories that do not ship to
+  consumers; a Vitest upgrade is planned.
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+MIT — see [LICENSE](./LICENSE).
