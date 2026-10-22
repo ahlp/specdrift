@@ -28,7 +28,9 @@ export function createLmStudioProvider(
   options: ProviderOptions = {},
 ): Provider {
   const baseUrl = stripTrailingSlash(
-    options.baseUrl ?? envValue("SDD_LMSTUDIO_BASE_URL") ?? DEFAULT_BASE_URL,
+    options.baseUrl ??
+      envValue("SPECDRIFT_LMSTUDIO_BASE_URL") ??
+      DEFAULT_BASE_URL,
   );
 
   let discoveredModel: string | undefined;

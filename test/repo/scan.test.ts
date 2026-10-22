@@ -7,7 +7,7 @@ import { scanRepository } from "../../src/repo/scan.js";
 let root: string;
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "sdd-scan-"));
+  root = await mkdtemp(join(tmpdir(), "specdrift-scan-"));
 });
 
 afterEach(async () => {

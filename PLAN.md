@@ -1,5 +1,8 @@
 # Plan: `sdd` — Semantic OpenSpec Validation CLI
 
+> **Note:** this project was implemented and later renamed to **`specdrift`**.
+> The original `sdd` name is kept in this historical plan.
+>
 > Status: draft (plan only — no code changes yet)
 > Repository: `ahlp/sdd`
 > Reference implementation/fixture: `ahlp/flood-status-recife`
@@ -21,8 +24,8 @@ sdd openspec              # openspec command group (help / entrypoint)
 sdd openspec validate     # semantic validation of openspec vs repo content
 ```
 
-The existing `@fission-ai/openspec` tool already provides *structural* validation
-(`openspec validate --specs`). `sdd` complements it with *semantic* validation:
+The existing `@fission-ai/openspec` tool already provides _structural_ validation
+(`openspec validate --specs`). `sdd` complements it with _semantic_ validation:
 it detects drift between spec and code, which structural validation cannot.
 
 ---
@@ -45,6 +48,7 @@ Each `spec.md` follows this shape:
 
 ```markdown
 ## Purpose
+
 One-paragraph description of the capability.
 
 ## Requirements
@@ -87,32 +91,32 @@ later.)
 
 ### 3.2 Flags for `sdd openspec validate`
 
-| Flag | Description | Default |
-| --- | --- | --- |
-| `--specs-dir <path>` | Directory containing `openspec/` | `./openspec` |
-| `--root <path>` | Repository root to scan | `process.cwd()` |
-| `--provider <name>` | `lmstudio` \| `ollama` \| `deepseek` | auto-detect |
-| `--model <id>` | Model id/name override | provider default |
-| `--base-url <url>` | Override provider endpoint | provider default |
-| `--api-key <key>` | API key (DeepSeek) — prefer env var | `DEEPSEEK_API_KEY` |
-| `--format <fmt>` | `markdown` \| `json` \| `text` | `markdown` |
-| `--output <file>` | Write report to file instead of stdout | `-` (stdout) |
-| `--fail-on <level>` | Exit non-zero at `error` \| `warning` \| `non-compliant` | `non-compliant` |
-| `--include <glob>` | Restrict source files scanned | `**/*` |
-| `--exclude <glob>` | Extra ignore globs (gitignore is always honored) | none |
-| `--max-tokens <n>` | Cap per-request output tokens | provider default |
-| `--verbose` | Debug: print prompts, timing, raw responses | off |
-| `--concurrency <n>` | Parallel AI requests per spec | `2` |
+| Flag                 | Description                                              | Default            |
+| -------------------- | -------------------------------------------------------- | ------------------ |
+| `--specs-dir <path>` | Directory containing `openspec/`                         | `./openspec`       |
+| `--root <path>`      | Repository root to scan                                  | `process.cwd()`    |
+| `--provider <name>`  | `lmstudio` \| `ollama` \| `deepseek`                     | auto-detect        |
+| `--model <id>`       | Model id/name override                                   | provider default   |
+| `--base-url <url>`   | Override provider endpoint                               | provider default   |
+| `--api-key <key>`    | API key (DeepSeek) — prefer env var                      | `DEEPSEEK_API_KEY` |
+| `--format <fmt>`     | `markdown` \| `json` \| `text`                           | `markdown`         |
+| `--output <file>`    | Write report to file instead of stdout                   | `-` (stdout)       |
+| `--fail-on <level>`  | Exit non-zero at `error` \| `warning` \| `non-compliant` | `non-compliant`    |
+| `--include <glob>`   | Restrict source files scanned                            | `**/*`             |
+| `--exclude <glob>`   | Extra ignore globs (gitignore is always honored)         | none               |
+| `--max-tokens <n>`   | Cap per-request output tokens                            | provider default   |
+| `--verbose`          | Debug: print prompts, timing, raw responses              | off                |
+| `--concurrency <n>`  | Parallel AI requests per spec                            | `2`                |
 
 ### 3.3 Exit codes (CI-friendly)
 
-| Code | Meaning |
-| --- | --- |
-| `0` | All requirements compliant |
-| `1` | Validation ran; ≥1 non-compliant finding (see `--fail-on`) |
-| `2` | Usage/argument error |
-| `3` | No `openspec/` found / parse error |
-| `4` | AI provider unreachable or returned malformed output |
+| Code | Meaning                                                    |
+| ---- | ---------------------------------------------------------- |
+| `0`  | All requirements compliant                                 |
+| `1`  | Validation ran; ≥1 non-compliant finding (see `--fail-on`) |
+| `2`  | Usage/argument error                                       |
+| `3`  | No `openspec/` found / parse error                         |
+| `4`  | AI provider unreachable or returned malformed output       |
 
 ---
 
@@ -213,7 +217,7 @@ A single `Provider` interface keeps the validation logic provider-agnostic:
 
 ```ts
 interface Provider {
-  id: 'lmstudio' | 'ollama' | 'deepseek';
+  id: "lmstudio" | "ollama" | "deepseek";
   chat(messages: ChatMessage[], opts: RequestOpts): Promise<string>;
   healthCheck(): Promise<boolean>;
 }
@@ -288,15 +292,15 @@ guard against hallucinated/malformed output):
     {
       "requirement": "Exibir Decisão do Dia Centralizada",
       "scenario": "Decisão SIM exibida corretamente com tema alerta",
-      "status": "compliant",          // compliant | partial | non-compliant | not-implemented | inconclusive
-      "classification": "D",           // A..G taxonomy (see below), or null
+      "status": "compliant", // compliant | partial | non-compliant | not-implemented | inconclusive
+      "classification": "D", // A..G taxonomy (see below), or null
       "evidence": {
         "files": ["frontend/src/components/DecisionDisplay.tsx"],
-        "note": "Renders 48px+ with #ff4d00 and 0.3s transition"
+        "note": "Renders 48px+ with #ff4d00 and 0.3s transition",
       },
-      "fix": "Update RISK_THRESHOLD from 65 to 60 in riskEngine.ts"  // suggested action
-    }
-  ]
+      "fix": "Update RISK_THRESHOLD from 65 to 60 in riskEngine.ts", // suggested action
+    },
+  ],
 }
 ```
 
@@ -309,15 +313,15 @@ preserved under `--verbose`.
 Adopt the fixture's classification so `sdd` output maps to the research
 benchmark (`openspec-benchmark-cases.md`):
 
-| Class | Name | Meaning |
-| --- | --- | --- |
-| **A** | Spec drift | Code changed legitimately; spec is stale → update spec |
-| **B** | Code drift | Spec changed; code is stale → fix code |
-| **C** | Green-field | New spec, no implementation → plan modules |
-| **D** | Regression/bug | Code change violates GIVEN/WHEN/THEN → fix bug |
-| **E** | Orphan/dead code | Requirement removed from spec; code remains → flag dead code |
-| **F** | Contract/schema mismatch | Subtle payload/HTTP/unit/type mismatch |
-| **G** | Split-brain | Spec and code both changed, conflicting premises → human arbitration |
+| Class | Name                     | Meaning                                                              |
+| ----- | ------------------------ | -------------------------------------------------------------------- |
+| **A** | Spec drift               | Code changed legitimately; spec is stale → update spec               |
+| **B** | Code drift               | Spec changed; code is stale → fix code                               |
+| **C** | Green-field              | New spec, no implementation → plan modules                           |
+| **D** | Regression/bug           | Code change violates GIVEN/WHEN/THEN → fix bug                       |
+| **E** | Orphan/dead code         | Requirement removed from spec; code remains → flag dead code         |
+| **F** | Contract/schema mismatch | Subtle payload/HTTP/unit/type mismatch                               |
+| **G** | Split-brain              | Spec and code both changed, conflicting premises → human arbitration |
 
 ### 8.5 Per-scenario granularity
 
@@ -359,14 +363,14 @@ Config keys: `provider`, `model`, `baseUrl`, `specsDir`, `include`, `exclude`,
 
 ## 11. Dependencies
 
-| Package | Purpose |
-| --- | --- |
-| `commander` (or `yargs`) | CLI parsing |
-| `yaml` | Parse `config.yaml` / `.sddrc` |
-| `zod` | Validate config + AI JSON output |
-| `ignore` (or `fast-glob` + custom) | `.gitignore`-aware file scan |
-| `chalk` | Colored terminal output |
-| `undici`/`fetch` | HTTP to providers (Node 18+ native fetch) |
+| Package                            | Purpose                                   |
+| ---------------------------------- | ----------------------------------------- |
+| `commander` (or `yargs`)           | CLI parsing                               |
+| `yaml`                             | Parse `config.yaml` / `.sddrc`            |
+| `zod`                              | Validate config + AI JSON output          |
+| `ignore` (or `fast-glob` + custom) | `.gitignore`-aware file scan              |
+| `chalk`                            | Colored terminal output                   |
+| `undici`/`fetch`                   | HTTP to providers (Node 18+ native fetch) |
 
 Minimal dependencies; keep the parser dependency-free (hand-rolled Markdown
 section parser) to avoid heavy Markdown libraries.
@@ -388,7 +392,7 @@ section parser) to avoid heavy Markdown libraries.
   `openspec-benchmark-cases.md` (20+ PR cases across taxonomy A–G) is the
   acceptance suite for measuring detection accuracy.
 - **CI**: lint (`tsc --noEmit`), unit tests (`vitest`), and a `sdd openspec
-  validate --provider mock` smoke run.
+validate --provider mock` smoke run.
 
 ---
 

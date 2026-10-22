@@ -1,10 +1,10 @@
 {
-  "name": "@ahlp/sdd",
+  "name": "specdrift",
   "version": "0.1.0",
-  "description": "Semantic OpenSpec validation CLI: compare specs against repository code using AI",
+  "description": "Framework-agnostic semantic spec validation CLI: detect spec/code drift using AI",
   "type": "module",
   "bin": {
-    "sdd": "dist/cli/index.js"
+    "specdrift": "dist/cli/index.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -26,12 +26,17 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
     "test": "vitest run",
     "test:watch": "vitest",
+    "ci": "npm run typecheck && npm test && npm run build",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
+    "specdrift",
+    "spec-drift",
     "openspec",
     "sdd",
     "spec-driven-development",
+    "spec-validation",
+    "framework-agnostic",
     "validation",
     "ai",
     "lmstudio",

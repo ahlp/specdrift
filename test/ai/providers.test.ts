@@ -175,13 +175,13 @@ describe("Ollama provider", () => {
 describe("DeepSeek provider", () => {
   it("requires an API key", () => {
     vi.stubEnv("DEEPSEEK_API_KEY", "");
-    vi.stubEnv("SDD_DEEPSEEK_API_KEY", "");
+    vi.stubEnv("SPECDRIFT_DEEPSEEK_API_KEY", "");
 
     expect(() => createDeepSeekProvider()).toThrow(ProviderError);
   });
 
   it("sends the API key and default model", async () => {
-    vi.stubEnv("SDD_DEEPSEEK_MODEL", "");
+    vi.stubEnv("SPECDRIFT_DEEPSEEK_MODEL", "");
     const fetchMock = vi.fn(async () =>
       jsonResponse({ choices: [{ message: { content: "deepseek" } }] }),
     );
@@ -226,7 +226,7 @@ describe("resolveProvider", () => {
   });
 
   it("auto-detects LM Studio first", async () => {
-    vi.stubEnv("SDD_PROVIDER", "");
+    vi.stubEnv("SPECDRIFT_PROVIDER", "");
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: unknown) => {
@@ -244,7 +244,7 @@ describe("resolveProvider", () => {
   });
 
   it("falls back to Ollama when LM Studio is down", async () => {
-    vi.stubEnv("SDD_PROVIDER", "");
+    vi.stubEnv("SPECDRIFT_PROVIDER", "");
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: unknown) => {
@@ -264,9 +264,9 @@ describe("resolveProvider", () => {
   });
 
   it("explains how to configure a provider when none is available", async () => {
-    vi.stubEnv("SDD_PROVIDER", "");
+    vi.stubEnv("SPECDRIFT_PROVIDER", "");
     vi.stubEnv("DEEPSEEK_API_KEY", "");
-    vi.stubEnv("SDD_DEEPSEEK_API_KEY", "");
+    vi.stubEnv("SPECDRIFT_DEEPSEEK_API_KEY", "");
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => {

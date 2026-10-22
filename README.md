@@ -1,16 +1,56 @@
-# sdd
+# specdrift
 
-> Semantic validation of [OpenSpec](https://github.com/Fission-AI/OpenSpec)
-> specs against real repository code, using a local or cloud AI provider.
+> Framework-agnostic semantic spec validation. Point it at your specs and your
+> code; it tells you where they drift apart, using a local or cloud AI provider.
 
-`sdd` complements the structural `openspec validate` command: instead of
-checking that spec files are well-formed, it asks an AI model to compare each
-requirement and scenario with the repository source and report drift.
+`specdrift` complements structural validators such as `openspec validate`:
+instead of checking that spec files are well-formed, it asks an AI model to
+compare each requirement and scenario with the real repository source and report
+drift, with evidence and a suggested fix.
+
+**OpenSpec is the first supported spec format**, but the validation engine is
+format-agnostic. New adapters can map other formats — Gherkin, RFC-style
+documents, custom Markdown, ADRs — onto the same pipeline without changing the
+CLI or the AI layer.
 
 ```
-sdd openspec              # command group (prints help)
-sdd openspec validate     # semantic validation
+specdrift openspec              # OpenSpec command group (prints help)
+specdrift openspec validate     # semantic validation for OpenSpec projects
 ```
+
+## Why framework-agnostic?
+
+The pipeline is deliberately split into two layers:
+
+```
+┌──────────────────────┐
+│  spec format adapter │  discovery + parsing (e.g. src/openspec)
+└──────────┬───────────┘
+           │ neutral model: Spec → Requirement → Scenario → GIVEN/WHEN/THEN
+           ▼
+┌──────────────────────────────────────────────────────────┐
+│ repository scan → prompt → AI provider → reconcile → report │
+│              (format-agnostic core)                        │
+└──────────────────────────────────────────────────────────┘
+```
+
+The core (`src/repo`, `src/ai`, `src/validate`, `src/report`) knows nothing about
+OpenSpec-specific files. An adapter only has to:
+
+1. discover spec files, and
+2. parse them into the neutral requirement/scenario model.
+
+The CLI is structured per format (`specdrift <format> validate`), so adding a
+new adapter does not break existing commands.
+
+### Supported formats
+
+| Format                      | Command                       | Status    |
+| --------------------------- | ----------------------------- | --------- |
+| OpenSpec                    | `specdrift openspec validate` | ✅ v1     |
+| Gherkin / Cucumber          | `specdrift gherkin validate`  | planned   |
+| Custom Markdown / RFC specs | `specdrift markdown validate` | planned   |
+| ADRs                        | `specdrift adr validate`      | exploring |
 
 ## Requirements
 
@@ -23,13 +63,10 @@ sdd openspec validate     # semantic validation
 ## Install
 
 ```bash
-npm install -g @ahlp/sdd
+npm install -g specdrift
 # or run without installing
-npx @ahlp/sdd openspec validate
+npx specdrift openspec validate
 ```
-
-The package is published under the `@ahlp` scope because the bare npm name
-`sdd` is already taken. The installed command is still **`sdd`**.
 
 ## Quick start
 
@@ -37,19 +74,19 @@ From a repository that contains an `openspec/` directory:
 
 ```bash
 # Auto-detect a local provider (LM Studio, then Ollama)
-sdd openspec validate
+specdrift openspec validate
 
 # Force a provider and model
-sdd openspec validate --provider ollama --model llama3.1
+specdrift openspec validate --provider ollama --model llama3.1
 
 # Machine-readable report + fail CI on drift
-sdd openspec validate --format json --fail-on non-compliant
+specdrift openspec validate --format json --fail-on non-compliant
 ```
 
 The default report is written to stdout in Markdown. Use `--output report.md`
 to write it to a file (colors are only used for TTY stdout).
 
-## Expected project layout
+## Expected OpenSpec layout
 
 ```
 repo/
@@ -87,7 +124,7 @@ structural markers and `GIVEN`/`WHEN`/`THEN` labels.
 
 ## Commands and flags
 
-### `sdd openspec validate`
+### `specdrift openspec validate`
 
 | Flag                  | Description                                            | Default          |
 | --------------------- | ------------------------------------------------------ | ---------------- |
@@ -115,41 +152,41 @@ output, lockfiles, binaries, and `openspec/` itself.
 
 1. Load a model in LM Studio.
 2. Start the local server (default `http://localhost:1234`).
-3. Run `sdd openspec validate --provider lmstudio`.
+3. Run `specdrift openspec validate --provider lmstudio`.
 
-Override the endpoint with `--base-url` or `SDD_LMSTUDIO_BASE_URL`. No API key
-is required.
+Override the endpoint with `--base-url` or `SPECDRIFT_LMSTUDIO_BASE_URL`. No API
+key is required.
 
 ### Ollama (local)
 
 ```bash
 ollama serve
 ollama pull llama3.1
-sdd openspec validate --provider ollama --model llama3.1
+specdrift openspec validate --provider ollama --model llama3.1
 ```
 
 The native `/api/chat` endpoint is used by default. A base URL ending in `/v1`
 switches to Ollama's OpenAI-compatible endpoint. Environment overrides:
-`SDD_OLLAMA_BASE_URL`, `SDD_OLLAMA_MODEL`.
+`SPECDRIFT_OLLAMA_BASE_URL`, `SPECDRIFT_OLLAMA_MODEL`.
 
 ### DeepSeek (cloud)
 
 ```bash
 export DEEPSEEK_API_KEY=sk-...
-sdd openspec validate --provider deepseek --model deepseek-chat
+specdrift openspec validate --provider deepseek --model deepseek-chat
 ```
 
 Defaults to `https://api.deepseek.com/v1` and `deepseek-chat`.
-Environment overrides: `SDD_DEEPSEEK_API_KEY`, `SDD_DEEPSEEK_BASE_URL`,
-`SDD_DEEPSEEK_MODEL`.
+Environment overrides: `SPECDRIFT_DEEPSEEK_API_KEY`,
+`SPECDRIFT_DEEPSEEK_BASE_URL`, `SPECDRIFT_DEEPSEEK_MODEL`.
 
 > **Privacy:** LM Studio and Ollama keep repository content on your machine.
-> DeepSeek uploads the selected source files to a third party. `sdd` prints a
-> warning when a cloud provider is selected.
+> DeepSeek uploads the selected source files to a third party. `specdrift`
+> prints a warning when a cloud provider is selected.
 
 ### Provider auto-detection
 
-When `--provider` and `SDD_PROVIDER` are absent, `sdd` probes:
+When `--provider` and `SPECDRIFT_PROVIDER` are absent, `specdrift` probes:
 
 1. LM Studio (`http://localhost:1234`)
 2. Ollama (`http://localhost:11434`)
@@ -162,11 +199,12 @@ If none is reachable it exits with a clear message and code `4`.
 Precedence, highest first:
 
 1. CLI flags
-2. `SDD_*` environment variables
-3. `.sddrc` / `.sddrc.json` / `.sddrc.yaml` / `.sddrc.yml` in the repository root
+2. `SPECDRIFT_*` environment variables
+3. `.specdriftrc` / `.specdriftrc.json` / `.specdriftrc.yaml` /
+   `.specdriftrc.yml` in the repository root
 4. Built-in defaults
 
-`.sddrc` may be JSON or YAML:
+`.specdriftrc` may be JSON or YAML:
 
 ```yaml
 provider: ollama
@@ -185,28 +223,28 @@ Unknown keys are rejected so typos are caught early.
 
 ### Environment variables
 
-| Variable                                    | Purpose                              |
-| ------------------------------------------- | ------------------------------------ |
-| `SDD_PROVIDER`                              | `lmstudio` \| `ollama` \| `deepseek` |
-| `SDD_MODEL`                                 | Model override                       |
-| `SDD_BASE_URL`                              | Generic endpoint override            |
-| `SDD_SPECS_DIR`                             | OpenSpec directory                   |
-| `SDD_FORMAT`                                | Report format                        |
-| `SDD_FAIL_ON`                               | Failure threshold                    |
-| `SDD_CONCURRENCY`                           | Parallel spec requests               |
-| `SDD_MAX_TOKENS`                            | Output token cap                     |
-| `SDD_TEMPERATURE`                           | Sampling temperature                 |
-| `SDD_MAX_FILE_BYTES`                        | Per-file scan budget                 |
-| `SDD_MAX_TOTAL_BYTES`                       | Total scan budget                    |
-| `SDD_MAX_CONTEXT_BYTES`                     | Prompt context budget                |
-| `SDD_INCLUDE_TESTS`                         | Include test files in the scan       |
-| `SDD_TIMEOUT_MS`                            | Provider request timeout             |
-| `SDD_LMSTUDIO_BASE_URL`                     | LM Studio endpoint                   |
-| `SDD_OLLAMA_BASE_URL`                       | Ollama endpoint                      |
-| `SDD_OLLAMA_MODEL`                          | Ollama model                         |
-| `SDD_DEEPSEEK_BASE_URL`                     | DeepSeek endpoint                    |
-| `SDD_DEEPSEEK_MODEL`                        | DeepSeek model                       |
-| `SDD_DEEPSEEK_API_KEY` / `DEEPSEEK_API_KEY` | DeepSeek key                         |
+| Variable                                          | Purpose                              |
+| ------------------------------------------------- | ------------------------------------ |
+| `SPECDRIFT_PROVIDER`                              | `lmstudio` \| `ollama` \| `deepseek` |
+| `SPECDRIFT_MODEL`                                 | Model override                       |
+| `SPECDRIFT_BASE_URL`                              | Generic endpoint override            |
+| `SPECDRIFT_SPECS_DIR`                             | OpenSpec directory                   |
+| `SPECDRIFT_FORMAT`                                | Report format                        |
+| `SPECDRIFT_FAIL_ON`                               | Failure threshold                    |
+| `SPECDRIFT_CONCURRENCY`                           | Parallel spec requests               |
+| `SPECDRIFT_MAX_TOKENS`                            | Output token cap                     |
+| `SPECDRIFT_TEMPERATURE`                           | Sampling temperature                 |
+| `SPECDRIFT_MAX_FILE_BYTES`                        | Per-file scan budget                 |
+| `SPECDRIFT_MAX_TOTAL_BYTES`                       | Total scan budget                    |
+| `SPECDRIFT_MAX_CONTEXT_BYTES`                     | Prompt context budget                |
+| `SPECDRIFT_INCLUDE_TESTS`                         | Include test files in the scan       |
+| `SPECDRIFT_TIMEOUT_MS`                            | Provider request timeout             |
+| `SPECDRIFT_LMSTUDIO_BASE_URL`                     | LM Studio endpoint                   |
+| `SPECDRIFT_OLLAMA_BASE_URL`                       | Ollama endpoint                      |
+| `SPECDRIFT_OLLAMA_MODEL`                          | Ollama model                         |
+| `SPECDRIFT_DEEPSEEK_BASE_URL`                     | DeepSeek endpoint                    |
+| `SPECDRIFT_DEEPSEEK_MODEL`                        | DeepSeek model                       |
+| `SPECDRIFT_DEEPSEEK_API_KEY` / `DEEPSEEK_API_KEY` | DeepSeek key                         |
 
 Project-wide guidance in `openspec/config.yaml` (`context`, `rules`,
 `operations`) is included in the prompt.
@@ -229,7 +267,7 @@ Each finding reports:
 | `classification` | Drift class `A`–`G`, or `null` when compliant                              |
 | `evidence.files` | Repository paths used as evidence                                          |
 | `evidence.note`  | Short justification                                                        |
-| `fix`            | Suggested action (report-only; `sdd` never edits files)                    |
+| `fix`            | Suggested action (report-only; `specdrift` never edits files)              |
 
 ### Drift taxonomy
 
@@ -262,9 +300,9 @@ Each finding reports:
 ## How it works
 
 ```
-discover openspec/specs
+discover specs (format adapter)
         ↓
-parse Purpose / Requirements / Scenarios
+parse Purpose / Requirements / Scenarios into the neutral model
         ↓
 scan repository (.gitignore-aware, token-budgeted)
         ↓
@@ -282,7 +320,7 @@ finding is reported as `inconclusive`, so coverage is always explicit.
 
 ## Library usage
 
-`sdd` is also an npm library:
+`specdrift` is also an npm library:
 
 ```ts
 import { resolve } from "node:path";
@@ -293,7 +331,7 @@ import {
   resolveProvider,
   scanRepository,
   validateProject,
-} from "@ahlp/sdd";
+} from "specdrift";
 
 const root = process.cwd();
 const config = await loadConfig({ root });
@@ -322,6 +360,9 @@ console.log(renderReport(config.format, report));
 ```
 
 All pipeline stages and the three renderers are exported from the package root.
+Future format adapters are expected to expose the same `discover*` + parsed
+`Spec` shape, so they can reuse `scanRepository`, `validateProject` and the
+report renderers unchanged.
 
 ## Development
 
@@ -330,6 +371,7 @@ npm install
 npm run build        # compile to dist/
 npm test             # vitest
 npm run typecheck    # src + tests
+npm run ci           # typecheck + test + build
 ```
 
 The test suite includes an end-to-end run with a mock LM Studio server. A manual
@@ -340,9 +382,20 @@ npm run build
 node test/manual/run-fixture.mjs /path/to/project
 ```
 
+CI is defined in `.gitlab-ci.yml` and runs typecheck, tests, build, the CLI
+smoke check and `npm pack --dry-run`.
+
+## Roadmap
+
+- Additional spec adapters (`gherkin`, `markdown`/RFC, `adr`).
+- `specdrift <format> init` / `list` / `diff` commands.
+- SARIF output for code-scanning integrations.
+- Optional auto-fix proposals (still report-only by default).
+
 ## Limitations (v1)
 
 - Report-only: it suggests fixes but never edits code or specs.
+- Only the OpenSpec adapter is implemented.
 - Targets `openspec/specs/**`; the `changes/` proposal workflow is not covered.
 - Model quality and context budget affect accuracy; truncated or omitted files
   are marked in the prompt.

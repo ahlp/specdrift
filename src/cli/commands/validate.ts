@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { Command } from "commander";
 import { ProviderError, resolveProvider } from "../../ai/index.js";
 import { loadConfig } from "../../config/index.js";
-import type { ResolvedConfig, SddConfig } from "../../config/index.js";
+import type { ResolvedConfig, SpecdriftConfig } from "../../config/index.js";
 import {
   discoverOpenspec,
   OpenspecNotFoundError,
@@ -30,21 +30,21 @@ export interface ValidateCliOptions {
   verbose: boolean;
 }
 
-function cliOverrides(options: ValidateCliOptions): Partial<SddConfig> {
-  const overrides: Partial<SddConfig> = {};
+function cliOverrides(options: ValidateCliOptions): Partial<SpecdriftConfig> {
+  const overrides: Partial<SpecdriftConfig> = {};
 
   if (options.specsDir !== undefined) overrides.specsDir = options.specsDir;
   if (options.provider !== undefined) {
-    overrides.provider = options.provider as SddConfig["provider"];
+    overrides.provider = options.provider as SpecdriftConfig["provider"];
   }
   if (options.model !== undefined) overrides.model = options.model;
   if (options.baseUrl !== undefined) overrides.baseUrl = options.baseUrl;
   if (options.apiKey !== undefined) overrides.apiKey = options.apiKey;
   if (options.format !== undefined) {
-    overrides.format = options.format as SddConfig["format"];
+    overrides.format = options.format as SpecdriftConfig["format"];
   }
   if (options.failOn !== undefined) {
-    overrides.failOn = options.failOn as SddConfig["failOn"];
+    overrides.failOn = options.failOn as SpecdriftConfig["failOn"];
   }
   if (options.include !== undefined) overrides.include = options.include;
   if (options.exclude !== undefined) overrides.exclude = options.exclude;
@@ -99,25 +99,25 @@ async function writeOutput(
 
   const target = resolve(root, output);
   await writeFile(target, content, "utf8");
-  process.stderr.write(`sdd: report written to ${target}\n`);
+  process.stderr.write(`specdrift: report written to ${target}\n`);
 }
 
 function reportCliError(error: unknown): void {
   const message = error instanceof Error ? error.message : String(error);
 
   if (error instanceof OpenspecNotFoundError) {
-    process.stderr.write(`sdd: ${message}\n`);
+    process.stderr.write(`specdrift: ${message}\n`);
     process.exitCode = 3;
     return;
   }
 
   if (error instanceof ProviderError) {
-    process.stderr.write(`sdd: ${message}\n`);
+    process.stderr.write(`specdrift: ${message}\n`);
     process.exitCode = 4;
     return;
   }
 
-  process.stderr.write(`sdd: ${message}\n`);
+  process.stderr.write(`specdrift: ${message}\n`);
   process.exitCode = 2;
 }
 
@@ -165,7 +165,7 @@ export function registerValidateCommand(parent: Command): void {
 
         if (project.specs.length === 0) {
           process.stderr.write(
-            `sdd: no OpenSpec specs found under ${specsDir}\n`,
+            `specdrift: no OpenSpec specs found under ${specsDir}\n`,
           );
           process.exitCode = 3;
           return;
@@ -173,9 +173,9 @@ export function registerValidateCommand(parent: Command): void {
 
         if (cliOptions.verbose) {
           process.stderr.write(
-            `sdd: discovered ${project.specs.length} spec(s) in ${specsDir}\n`,
+            `specdrift: discovered ${project.specs.length} spec(s) in ${specsDir}\n`,
           );
-          process.stderr.write(`sdd: scanning repository ${root}\n`);
+          process.stderr.write(`specdrift: scanning repository ${root}\n`);
         }
 
         const repo = await scanRepository({
@@ -197,7 +197,7 @@ export function registerValidateCommand(parent: Command): void {
 
         if (!provider.isLocal) {
           process.stderr.write(
-            `sdd: warning: provider "${provider.id}" is a cloud API; repository content will be sent to a third party.\n`,
+            `specdrift: warning: provider "${provider.id}" is a cloud API; repository content will be sent to a third party.\n`,
           );
         }
 
@@ -213,11 +213,11 @@ export function registerValidateCommand(parent: Command): void {
           verbose: cliOptions.verbose,
           logger: (message) => process.stderr.write(`${message}\n`),
           onSpecStart: (spec) =>
-            process.stderr.write(`sdd: validating ${spec.name}...\n`),
+            process.stderr.write(`specdrift: validating ${spec.name}...\n`),
           onSpecDone: (result) => {
             const error = result.error ? ` — ${result.error}` : "";
             process.stderr.write(
-              `sdd: ${result.spec}: ${result.status} (${result.summary.compliant}/${result.summary.total} compliant)${error}\n`,
+              `specdrift: ${result.spec}: ${result.status} (${result.summary.compliant}/${result.summary.total} compliant)${error}\n`,
             );
           },
         });
@@ -236,7 +236,7 @@ export function registerValidateCommand(parent: Command): void {
           report.specs.every((spec) => Boolean(spec.error))
         ) {
           process.stderr.write(
-            "sdd: every spec failed to validate; check the AI provider and model.\n",
+            "specdrift: every spec failed to validate; check the AI provider and model.\n",
           );
           process.exitCode = 4;
           return;

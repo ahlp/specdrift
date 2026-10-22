@@ -37,7 +37,7 @@ export function createProvider(
 /**
  * Resolve a provider using this precedence:
  *
- * 1. explicit `provider` option / `SDD_PROVIDER`
+ * 1. explicit `provider` option / `SPECDRIFT_PROVIDER`
  * 2. probe LM Studio, then Ollama
  * 3. DeepSeek if an API key is available
  * 4. actionable error
@@ -51,7 +51,7 @@ export async function resolveProvider(
     ...providerOptions
   } = options;
 
-  const requestedId = requested ?? envValue("SDD_PROVIDER");
+  const requestedId = requested ?? envValue("SPECDRIFT_PROVIDER");
 
   if (requestedId) {
     if (!isProviderId(requestedId)) {
@@ -75,7 +75,7 @@ export async function resolveProvider(
 
   const hasDeepSeekKey = Boolean(
     providerOptions.apiKey ||
-    envValue("SDD_DEEPSEEK_API_KEY") ||
+    envValue("SPECDRIFT_DEEPSEEK_API_KEY") ||
     envValue("DEEPSEEK_API_KEY"),
   );
 

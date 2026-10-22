@@ -35,7 +35,9 @@ function isOpenAiCompatible(baseUrl: string): boolean {
  */
 export function createOllamaProvider(options: ProviderOptions = {}): Provider {
   const baseUrl = stripTrailingSlash(
-    options.baseUrl ?? envValue("SDD_OLLAMA_BASE_URL") ?? DEFAULT_BASE_URL,
+    options.baseUrl ??
+      envValue("SPECDRIFT_OLLAMA_BASE_URL") ??
+      DEFAULT_BASE_URL,
   );
   const openAiCompatible = isOpenAiCompatible(baseUrl);
   const nativeRoot = baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
@@ -88,7 +90,7 @@ export function createOllamaProvider(options: ProviderOptions = {}): Provider {
       const model =
         chatOptions.model ??
         options.model ??
-        envValue("SDD_OLLAMA_MODEL") ??
+        envValue("SPECDRIFT_OLLAMA_MODEL") ??
         discoveredModel ??
         (discoveredModel = await discoverModel(Math.min(timeoutMs, 10_000)));
 

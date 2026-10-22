@@ -26,7 +26,7 @@ export function createDeepSeekProvider(
 ): Provider {
   const apiKey =
     options.apiKey ??
-    envValue("SDD_DEEPSEEK_API_KEY") ??
+    envValue("SPECDRIFT_DEEPSEEK_API_KEY") ??
     envValue("DEEPSEEK_API_KEY");
 
   if (!apiKey) {
@@ -37,10 +37,12 @@ export function createDeepSeekProvider(
   }
 
   const baseUrl = stripTrailingSlash(
-    options.baseUrl ?? envValue("SDD_DEEPSEEK_BASE_URL") ?? DEFAULT_BASE_URL,
+    options.baseUrl ??
+      envValue("SPECDRIFT_DEEPSEEK_BASE_URL") ??
+      DEFAULT_BASE_URL,
   );
   const defaultModel =
-    options.model ?? envValue("SDD_DEEPSEEK_MODEL") ?? DEFAULT_MODEL;
+    options.model ?? envValue("SPECDRIFT_DEEPSEEK_MODEL") ?? DEFAULT_MODEL;
 
   const authHeaders = (): Record<string, string> => ({
     authorization: `Bearer ${apiKey}`,

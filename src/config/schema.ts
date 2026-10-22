@@ -1,10 +1,10 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-export const PROVIDER_VALUES = ['lmstudio', 'ollama', 'deepseek'] as const;
-export const FORMAT_VALUES = ['markdown', 'json', 'text'] as const;
-export const FAIL_ON_VALUES = ['error', 'warning', 'non-compliant'] as const;
+export const PROVIDER_VALUES = ["lmstudio", "ollama", "deepseek"] as const;
+export const FORMAT_VALUES = ["markdown", "json", "text"] as const;
+export const FAIL_ON_VALUES = ["error", "warning", "non-compliant"] as const;
 
-/** Shape of an `.sddrc` file. Unknown keys are rejected to catch typos. */
+/** Shape of a `.specdriftrc` file. Unknown keys are rejected to catch typos. */
 export const configSchema = z
   .object({
     provider: z.enum(PROVIDER_VALUES).optional(),
@@ -27,4 +27,4 @@ export const configSchema = z
   })
   .strict();
 
-export type SddConfig = z.infer<typeof configSchema>;
+export type SpecdriftConfig = z.infer<typeof configSchema>;

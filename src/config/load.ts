@@ -5,17 +5,17 @@ import { z } from "zod";
 import { DEFAULT_MAX_CONTEXT_BYTES } from "../ai/prompt.js";
 import { DEFAULT_SCAN_LIMITS } from "../repo/types.js";
 import { configSchema } from "./schema.js";
-import type { SddConfig } from "./schema.js";
+import type { SpecdriftConfig } from "./schema.js";
 
 export const CONFIG_FILE_NAMES = [
-  ".sddrc",
-  ".sddrc.json",
-  ".sddrc.yaml",
-  ".sddrc.yml",
+  ".specdriftrc",
+  ".specdriftrc.json",
+  ".specdriftrc.yaml",
+  ".specdriftrc.yml",
 ] as const;
 
 export interface ResolvedConfig {
-  provider?: SddConfig["provider"];
+  provider?: SpecdriftConfig["provider"];
   model?: string;
   baseUrl?: string;
   apiKey?: string;
@@ -36,9 +36,9 @@ export interface ResolvedConfig {
 
 export interface LoadConfigOptions {
   root: string;
-  overrides?: Partial<SddConfig>;
+  overrides?: Partial<SpecdriftConfig>;
   env?: NodeJS.ProcessEnv;
-  /** Set to false to skip `.sddrc` discovery (useful for tests). */
+  /** Set to false to skip `.specdriftrc` discovery (useful for tests). */
   file?: boolean;
 }
 
@@ -51,7 +51,7 @@ function parseConfigContent(fileName: string, content: string): unknown {
     return YAML.parse(content);
   }
 
-  // `.sddrc` may be either JSON or YAML.
+  // `.specdriftrc` may be either JSON or YAML.
   try {
     return JSON.parse(content);
   } catch {
@@ -59,8 +59,8 @@ function parseConfigContent(fileName: string, content: string): unknown {
   }
 }
 
-/** Read and validate the first `.sddrc` file found in the repository root. */
-export async function readConfigFile(root: string): Promise<SddConfig> {
+/** Read and validate the first `.specdriftrc` file found in the repository root. */
+export async function readConfigFile(root: string): Promise<SpecdriftConfig> {
   for (const name of CONFIG_FILE_NAMES) {
     const path = join(root, name);
     let content: string;
@@ -101,49 +101,49 @@ function readBoolean(env: NodeJS.ProcessEnv, key: string): boolean | undefined {
   throw new Error(`invalid boolean value for ${key}: "${value}"`);
 }
 
-function configFromEnv(env: NodeJS.ProcessEnv): Partial<SddConfig> {
-  const config: Partial<SddConfig> = {};
+function configFromEnv(env: NodeJS.ProcessEnv): Partial<SpecdriftConfig> {
+  const config: Partial<SpecdriftConfig> = {};
 
-  const provider = readString(env, "SDD_PROVIDER");
-  if (provider) config.provider = provider as SddConfig["provider"];
+  const provider = readString(env, "SPECDRIFT_PROVIDER");
+  if (provider) config.provider = provider as SpecdriftConfig["provider"];
 
-  const model = readString(env, "SDD_MODEL");
+  const model = readString(env, "SPECDRIFT_MODEL");
   if (model) config.model = model;
 
-  const baseUrl = readString(env, "SDD_BASE_URL");
+  const baseUrl = readString(env, "SPECDRIFT_BASE_URL");
   if (baseUrl) config.baseUrl = baseUrl;
 
-  const specsDir = readString(env, "SDD_SPECS_DIR");
+  const specsDir = readString(env, "SPECDRIFT_SPECS_DIR");
   if (specsDir) config.specsDir = specsDir;
 
-  const format = readString(env, "SDD_FORMAT");
-  if (format) config.format = format as SddConfig["format"];
+  const format = readString(env, "SPECDRIFT_FORMAT");
+  if (format) config.format = format as SpecdriftConfig["format"];
 
-  const failOn = readString(env, "SDD_FAIL_ON");
-  if (failOn) config.failOn = failOn as SddConfig["failOn"];
+  const failOn = readString(env, "SPECDRIFT_FAIL_ON");
+  if (failOn) config.failOn = failOn as SpecdriftConfig["failOn"];
 
-  const concurrency = readNumber(env, "SDD_CONCURRENCY");
+  const concurrency = readNumber(env, "SPECDRIFT_CONCURRENCY");
   if (concurrency !== undefined) config.concurrency = concurrency;
 
-  const maxTokens = readNumber(env, "SDD_MAX_TOKENS");
+  const maxTokens = readNumber(env, "SPECDRIFT_MAX_TOKENS");
   if (maxTokens !== undefined) config.maxTokens = maxTokens;
 
-  const temperature = readNumber(env, "SDD_TEMPERATURE");
+  const temperature = readNumber(env, "SPECDRIFT_TEMPERATURE");
   if (temperature !== undefined) config.temperature = temperature;
 
-  const maxFileBytes = readNumber(env, "SDD_MAX_FILE_BYTES");
+  const maxFileBytes = readNumber(env, "SPECDRIFT_MAX_FILE_BYTES");
   if (maxFileBytes !== undefined) config.maxFileBytes = maxFileBytes;
 
-  const maxTotalBytes = readNumber(env, "SDD_MAX_TOTAL_BYTES");
+  const maxTotalBytes = readNumber(env, "SPECDRIFT_MAX_TOTAL_BYTES");
   if (maxTotalBytes !== undefined) config.maxTotalBytes = maxTotalBytes;
 
-  const maxContextBytes = readNumber(env, "SDD_MAX_CONTEXT_BYTES");
+  const maxContextBytes = readNumber(env, "SPECDRIFT_MAX_CONTEXT_BYTES");
   if (maxContextBytes !== undefined) config.maxContextBytes = maxContextBytes;
 
-  const includeTests = readBoolean(env, "SDD_INCLUDE_TESTS");
+  const includeTests = readBoolean(env, "SPECDRIFT_INCLUDE_TESTS");
   if (includeTests !== undefined) config.includeTests = includeTests;
 
-  const timeoutMs = readNumber(env, "SDD_TIMEOUT_MS");
+  const timeoutMs = readNumber(env, "SPECDRIFT_TIMEOUT_MS");
   if (timeoutMs !== undefined) config.timeoutMs = timeoutMs;
 
   return config;
@@ -162,8 +162,8 @@ function formatZodError(error: z.ZodError): string {
  * Resolve the effective configuration with this precedence (highest first):
  *
  * 1. explicit overrides (CLI flags)
- * 2. `SDD_*` environment variables
- * 3. `.sddrc` / `.sddrc.json` / `.sddrc.yaml` in the repository root
+ * 2. `SPECDRIFT_*` environment variables
+ * 3. `.specdriftrc` / `.specdriftrc.json` / `.specdriftrc.yaml` in the repository root
  * 4. built-in defaults
  */
 export async function loadConfig(
@@ -197,7 +197,9 @@ export async function loadConfig(
     };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      throw new Error(`invalid sdd configuration: ${formatZodError(error)}`);
+      throw new Error(
+        `invalid specdrift configuration: ${formatZodError(error)}`,
+      );
     }
     throw error;
   }
