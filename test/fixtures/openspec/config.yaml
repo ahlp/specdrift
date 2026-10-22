@@ -1,0 +1,11 @@
+schema: spec-driven
+context: |
+  Tech stack: TypeScript, React, Node.js
+  Domain: flood alerting
+rules:
+  proposal:
+    - Keep proposals under 500 words
+operations:
+  apply:
+    guidance:
+      - Keep test summaries concise
