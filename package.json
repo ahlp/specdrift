@@ -27,7 +27,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "ci": "npm run typecheck && npm test && npm run build",
-    "prepublishOnly": "npm run build"
+    "prepack": "npm run build"
   },
   "keywords": [
     "specdrift",
