@@ -6,7 +6,7 @@
 `specdrift` complements structural validators such as `openspec validate`:
 instead of checking that spec files are well-formed, it asks an AI model to
 compare each requirement and scenario with the real repository source and report
-drift, with evidence and a suggested fix.
+drift, with evidence.
 
 **OpenSpec is the first supported spec format**, but the validation engine is
 format-agnostic. New adapters can map other formats — Gherkin, RFC-style
@@ -126,22 +126,24 @@ structural markers and `GIVEN`/`WHEN`/`THEN` labels.
 
 ### `specdrift openspec validate`
 
-| Flag                  | Description                                            | Default          |
-| --------------------- | ------------------------------------------------------ | ---------------- |
-| `--specs-dir <path>`  | Directory containing `openspec/` (or the `specs/` dir) | `./openspec`     |
-| `--root <path>`       | Repository root to scan                                | `process.cwd()`  |
-| `--provider <name>`   | `lmstudio` \| `ollama` \| `deepseek`                   | auto-detect      |
-| `--model <id>`        | Model id/name                                          | provider default |
-| `--base-url <url>`    | Provider endpoint override                             | provider default |
-| `--api-key <key>`     | DeepSeek API key (prefer `DEEPSEEK_API_KEY`)           | env              |
-| `--format <fmt>`      | `markdown` \| `json` \| `text`                         | `markdown`       |
-| `--output <file>`     | Write the report to a file; `-` is stdout              | `-`              |
-| `--fail-on <level>`   | `error` \| `warning` \| `non-compliant`                | `non-compliant`  |
-| `--include <glob...>` | Only scan matching files                               | all              |
-| `--exclude <glob...>` | Extra ignore globs                                     | none             |
-| `--max-tokens <n>`    | Cap per-request output tokens                          | provider default |
-| `--concurrency <n>`   | Parallel spec requests                                 | `2`              |
-| `--verbose`           | Print prompts, raw responses and debug details         | off              |
+| Flag                  | Description                                                          | Default          |
+| --------------------- | -------------------------------------------------------------------- | ---------------- |
+| `--specs-dir <path>`  | Directory containing `openspec/` (or the `specs/` dir)               | `./openspec`     |
+| `--root <path>`       | Repository root to scan                                              | `process.cwd()`  |
+| `--provider <name>`   | `lmstudio` \| `ollama` \| `deepseek`                                 | auto-detect      |
+| `--model <id>`        | Model id/name                                                        | provider default |
+| `--base-url <url>`    | Provider endpoint override                                           | provider default |
+| `--api-key <key>`     | DeepSeek API key (prefer `DEEPSEEK_API_KEY`)                         | env              |
+| `--format <fmt>`      | `markdown` \| `json` \| `text`                                       | `markdown`       |
+| `--output <file>`     | Write the report to a file; `-` is stdout                            | `-`              |
+| `--fail-on <level>`   | `error` \| `warning` \| `non-compliant`                              | `non-compliant`  |
+| `--prompt <name>`     | Prompt preset: `permissive` \| `decision-tree` \| `minimal` \| `rtf` | `rtf`            |
+| `--include <glob...>` | Only scan matching files                                             | all              |
+| `--exclude <glob...>` | Extra ignore globs                                                   | none             |
+| `--max-tokens <n>`    | Cap per-request output tokens                                        | provider default |
+| `--concurrency <n>`   | Parallel spec requests                                               | `2`              |
+| `--timeout <ms>`      | Provider request timeout                                             | provider default |
+| `--verbose`           | Print prompts, raw responses and debug details                       | off              |
 
 The repository scan honors `.gitignore` and always skips VCS directories, build
 output, lockfiles, binaries, and `openspec/` itself.
@@ -156,6 +158,19 @@ output, lockfiles, binaries, and `openspec/` itself.
 
 Override the endpoint with `--base-url` or `SPECDRIFT_LMSTUDIO_BASE_URL`. No API
 key is required.
+
+> **Slow / reasoning models:** large models (e.g. 27B) processing repository
+> context can exceed the default request timeout, and reasoning models spend
+> output tokens on `reasoning_content` before producing JSON. For those, run
+> with reduced concurrency and a larger budget:
+>
+> ```bash
+> specdrift openspec validate --provider lmstudio --model <model> \
+>   --concurrency 1 --max-tokens 8192 --timeout 600000
+> ```
+>
+> `HTTP 0` in an error means a transport-level failure (connection refused or
+> timeout); the underlying cause is included in the message after `HTTP 0:`.
 
 ### Ollama (local)
 
@@ -254,20 +269,19 @@ Project-wide guidance in `openspec/config.yaml` (`context`, `rules`,
 Three formats are available:
 
 - **markdown** (default) — a summary table followed by one section per
-  capability, with evidence and suggested fixes.
+  capability, with evidence.
 - **json** — stable machine-readable output with `schemaVersion: 1`, finding
   statuses and drift classifications.
 - **text** — compact colorized terminal output.
 
 Each finding reports:
 
-| Field            | Meaning                                                                    |
-| ---------------- | -------------------------------------------------------------------------- |
-| `status`         | `compliant`, `partial`, `non-compliant`, `not-implemented`, `inconclusive` |
-| `classification` | Drift class `A`–`G`, or `null` when compliant                              |
-| `evidence.files` | Repository paths used as evidence                                          |
-| `evidence.note`  | Short justification                                                        |
-| `fix`            | Suggested action (report-only; `specdrift` never edits files)              |
+| Field            | Meaning                                                         |
+| ---------------- | --------------------------------------------------------------- |
+| `status`         | `compliant`, `non-compliant`, `not-implemented`, `inconclusive` |
+| `classification` | Drift class `A`–`G`, or `null` when compliant                   |
+| `evidence.files` | Repository paths used as evidence                               |
+| `evidence.note`  | Short justification                                             |
 
 ### Drift taxonomy
 
@@ -295,7 +309,7 @@ Each finding reports:
 
 - `error` — fail only when validation could not run for a spec.
 - `non-compliant` (default) — fail on `non-compliant` or `not-implemented`.
-- `warning` — also fail on `partial`, `inconclusive`, or spec errors.
+- `warning` — also fail on `inconclusive`, or spec errors.
 
 ## How it works
 
@@ -394,7 +408,7 @@ CLI smoke check and `npm pack --dry-run`.
 
 ## Limitations (v1)
 
-- Report-only: it suggests fixes but never edits code or specs.
+- Report-only: it reports explicit violations but never edits code or specs.
 - Only the OpenSpec adapter is implemented.
 - Targets `openspec/specs/**`; the `changes/` proposal workflow is not covered.
 - Model quality and context budget affect accuracy; truncated or omitted files

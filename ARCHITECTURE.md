@@ -8,7 +8,7 @@
 
 `specdrift` is a **framework-agnostic semantic spec validator**. It compares
 formal specs against real repository code using an AI provider and reports
-where they drift, with evidence and a suggested fix. It is report-only: it never
+where they drift, with evidence. It is report-only: it never
 modifies code or specs.
 
 ---
@@ -243,8 +243,23 @@ interface Provider {
 
 ### Prompt construction (`prompt.ts`)
 
-- **System prompt** defines the reviewer role, the drift taxonomy, and the exact
-  JSON output shape.
+Prompts are versioned as **presets** in `PROMPT_PRESETS`, keyed by
+`PROMPT_PRESET_NAMES`, with `DEFAULT_PROMPT = "rtf"`. `resolveSystemPrompt(name)`
+selects one (falling back to the default), and `buildMessages` uses the default
+when none is supplied. Adding a preset is a single entry in `PROMPT_PRESETS`;
+the CLI `--prompt` flag and the config `prompt` key stay in sync via
+`PROMPT_PRESET_NAMES`.
+
+- **`rtf` (default)** — Role / Task / Format structure, intent-level and
+  non-prescriptive; reports only explicit violations.
+- **`permissive`** — the earlier flat prompt, kept for comparison.
+- **`decision-tree`** — an explicit in-prompt decision tree.
+- **`minimal`** — a terser variant (noisier in practice).
+
+- **System prompt** defines an intent-level, non-prescriptive reviewer: it
+  judges scenarios as outcomes ("what should happen") rather than implementation
+  instructions, and never prescribes how the code should be built. It also
+  carries the drift taxonomy and the exact JSON output shape.
 - **User prompt** carries: project `context`/`rules` from `config.yaml`, the full
   spec, an explicit list of expected requirement/scenario pairs, and a
   relevance-ranked repository file map.
@@ -265,10 +280,9 @@ interface Provider {
     {
       "requirement": "Display decision",
       "scenario": "Render SIM",
-      "status": "compliant", // compliant | partial | non-compliant | not-implemented | inconclusive
+      "status": "compliant", // compliant | non-compliant | not-implemented | inconclusive
       "classification": "D", // A..G | null
       "evidence": { "files": ["src/a.ts"], "note": "..." },
-      "fix": "suggested change",
     },
   ],
 }
@@ -309,8 +323,8 @@ to `inconclusive`.
   statuses and drift classes.
 - **text** — compact, colorized terminal output (TTY + `NO_COLOR` aware).
 
-Reports always include requirement, scenario, status, classification, evidence
-files/note, and suggested fix.
+Reports always include requirement, scenario, status, classification, and
+evidence files/note.
 
 ---
 
@@ -397,6 +411,10 @@ produces a fresh tarball.
   for env and config file names.
 - **`prepublishOnly` → `prepack`** — one build hook covers both `npm pack` and
   `npm publish` without double-building.
+- **Prompt presets + `rtf` default** — prompts are a versioned registry
+  (`PROMPT_PRESETS`); the Role/Task/Format preset became the default after
+  benchmark evaluation. `partial` status and the `fix` suggestion field were
+  removed so the reviewer only flags explicit violations.
 
 ---
 
