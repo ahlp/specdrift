@@ -48,11 +48,11 @@
   "author": "Arthur Pires",
   "repository": {
     "type": "git",
-    "url": "git+https://gitlab.com/ahlp/sdd.git"
+    "url": "git+https://github.com/ahlp/specdrift.git"
   },
-  "homepage": "https://gitlab.com/ahlp/sdd#readme",
+  "homepage": "https://github.com/ahlp/specdrift#readme",
   "bugs": {
-    "url": "https://gitlab.com/ahlp/sdd/-/issues"
+    "url": "https://github.com/ahlp/specdrift/issues"
   },
   "publishConfig": {
     "access": "public"

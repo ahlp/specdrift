@@ -382,8 +382,8 @@ npm run build
 node test/manual/run-fixture.mjs /path/to/project
 ```
 
-CI is defined in `.gitlab-ci.yml` and runs typecheck, tests, build, the CLI
-smoke check and `npm pack --dry-run`.
+CI is defined in `.github/workflows/ci.yml` and runs typecheck, tests, build, the
+CLI smoke check and `npm pack --dry-run`.
 
 ## Roadmap
 
