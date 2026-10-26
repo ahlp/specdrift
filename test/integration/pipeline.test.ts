@@ -49,7 +49,6 @@ const MODEL_RESPONSE = {
         files: ["src/DecisionDisplay.tsx"],
         note: "renders SIM",
       },
-      fix: "",
     },
     {
       requirement: "Display decision",
@@ -60,7 +59,6 @@ const MODEL_RESPONSE = {
         files: ["src/DecisionDisplay.tsx"],
         note: "theme is missing",
       },
-      fix: "Add the blue theme",
     },
   ],
 };

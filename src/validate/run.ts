@@ -1,25 +1,21 @@
-import { buildMessages } from '../ai/prompt.js';
-import type { Provider, ProviderId } from '../ai/provider.js';
-import { parseSpecFile } from '../openspec/parse.js';
+import { buildMessages } from "../ai/prompt.js";
+import type { Provider, ProviderId } from "../ai/provider.js";
+import { parseSpecFile } from "../openspec/parse.js";
 import type {
   DiscoveredSpec,
   OpenspecProject,
   ParseWarning,
   Spec,
-} from '../openspec/types.js';
-import type { RepoContext } from '../repo/types.js';
+} from "../openspec/types.js";
+import type { RepoContext } from "../repo/types.js";
 import {
   extractJson,
   inconclusiveFinding,
   parseValidationResponse,
   specStatusFromSummary,
   summarizeFindings,
-} from './result.js';
-import type {
-  Finding,
-  FindingSummary,
-  SpecStatus,
-} from './result.js';
+} from "./result.js";
+import type { Finding, FindingSummary, SpecStatus } from "./result.js";
 
 export interface SpecValidationResult {
   spec: string;
@@ -56,6 +52,7 @@ export interface ValidateProjectOptions {
   maxTokens?: number;
   concurrency?: number;
   maxContextBytes?: number;
+  systemPrompt?: string;
   signal?: AbortSignal;
   verbose?: boolean;
   logger?: (message: string) => void;
@@ -66,10 +63,10 @@ export interface ValidateProjectOptions {
 function normalizeTitle(value: string): string {
   return value
     .toLowerCase()
-    .replace(/^\s*#{1,6}\s*/, '')
-    .replace(/^requirement\s*:\s*/, '')
-    .replace(/^scenario\s*:\s*/, '')
-    .replace(/\s+/g, ' ')
+    .replace(/^\s*#{1,6}\s*/, "")
+    .replace(/^requirement\s*:\s*/, "")
+    .replace(/^scenario\s*:\s*/, "")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -80,10 +77,7 @@ function normalizeTitle(value: string): string {
  * `inconclusive`, and returned titles are replaced with the spec's exact
  * titles. Findings for scenarios not present in the spec are dropped.
  */
-export function reconcileFindings(
-  spec: Spec,
-  findings: Finding[],
-): Finding[] {
+export function reconcileFindings(spec: Spec, findings: Finding[]): Finding[] {
   const byPair = new Map<string, Finding>();
   const byScenario = new Map<string, Finding>();
 
@@ -118,7 +112,7 @@ export function reconcileFindings(
           : inconclusiveFinding(
               requirement.title,
               scenario.title,
-              'The model returned no finding for this scenario.',
+              "The model returned no finding for this scenario.",
             ),
       );
     }
@@ -151,15 +145,12 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-function aggregateTotals(
-  results: SpecValidationResult[],
-): ReportTotals {
+function aggregateTotals(results: SpecValidationResult[]): ReportTotals {
   const totals: ReportTotals = {
     specs: results.length,
     requirements: 0,
     total: 0,
     compliant: 0,
-    partial: 0,
     nonCompliant: 0,
     notImplemented: 0,
     inconclusive: 0,
@@ -169,7 +160,6 @@ function aggregateTotals(
     totals.requirements += result.requirements;
     totals.total += result.summary.total;
     totals.compliant += result.summary.compliant;
-    totals.partial += result.summary.partial;
     totals.nonCompliant += result.summary.nonCompliant;
     totals.notImplemented += result.summary.notImplemented;
     totals.inconclusive += result.summary.inconclusive;
@@ -194,19 +184,22 @@ async function validateOne(
   try {
     spec = await parseSpecFile(discovered.name, discovered.filePath);
 
-    const messages = buildMessages({
-      spec,
-      repo: options.repo,
-      config: options.project.config,
-      maxContextBytes: options.maxContextBytes,
-    });
+    const messages = buildMessages(
+      {
+        spec,
+        repo: options.repo,
+        config: options.project.config,
+        maxContextBytes: options.maxContextBytes,
+      },
+      options.systemPrompt,
+    );
 
     if (options.verbose) {
       options.logger?.(
-        `[${spec.name}] system prompt:\n${messages[0]?.content ?? ''}`,
+        `[${spec.name}] system prompt:\n${messages[0]?.content ?? ""}`,
       );
       options.logger?.(
-        `[${spec.name}] user prompt:\n${messages[1]?.content ?? ''}`,
+        `[${spec.name}] user prompt:\n${messages[1]?.content ?? ""}`,
       );
     }
 
@@ -259,15 +252,13 @@ async function validateOne(
     const result: SpecValidationResult = {
       spec: spec?.name ?? discovered.name,
       specPath: spec?.path ?? discovered.filePath,
-      status: 'inconclusive',
+      status: "inconclusive",
       findings,
       summary,
       requirements: spec?.requirements.length ?? 0,
       durationMs: Date.now() - startedAt,
       error: message,
-      ...(spec && spec.warnings.length > 0
-        ? { warnings: spec.warnings }
-        : {}),
+      ...(spec && spec.warnings.length > 0 ? { warnings: spec.warnings } : {}),
     };
 
     options.onSpecDone?.(result);

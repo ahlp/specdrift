@@ -1,18 +1,18 @@
-import type { ValidationReport } from '../validate/run.js';
+import type { ValidationReport } from "../validate/run.js";
 import {
   CLASSIFICATION_LEGEND,
   FINDING_LABELS,
   isLocalProvider,
   SPEC_LABELS,
   evidenceText,
-} from './labels.js';
+} from "./labels.js";
 
 function escapeCell(value: string): string {
-  return value.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ').trim();
+  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ").trim();
 }
 
 function specHeading(report: ValidationReport): string[] {
-  const locality = isLocalProvider(report.provider) ? 'local' : 'cloud';
+  const locality = isLocalProvider(report.provider) ? "local" : "cloud";
   const lines = [
     `**Generated**: ${report.generatedAt}`,
     `**Repository**: \`${report.root}\``,
@@ -31,29 +31,28 @@ function specHeading(report: ValidationReport): string[] {
 export function renderMarkdown(report: ValidationReport): string {
   const lines: string[] = [];
 
-  lines.push('# Spec Compliance Report', '');
-  lines.push(...specHeading(report), '');
+  lines.push("# Spec Compliance Report", "");
+  lines.push(...specHeading(report), "");
 
-  lines.push('## Summary', '');
-  lines.push('| Metric | Count |');
-  lines.push('| --- | ---: |');
+  lines.push("## Summary", "");
+  lines.push("| Metric | Count |");
+  lines.push("| --- | ---: |");
   const rows: Array<[string, number]> = [
-    ['Specs', report.totals.specs],
-    ['Requirements', report.totals.requirements],
-    ['Scenarios', report.totals.total],
-    ['Compliant', report.totals.compliant],
-    ['Partial', report.totals.partial],
-    ['Non-compliant', report.totals.nonCompliant],
-    ['Not implemented', report.totals.notImplemented],
-    ['Inconclusive', report.totals.inconclusive],
+    ["Specs", report.totals.specs],
+    ["Requirements", report.totals.requirements],
+    ["Scenarios", report.totals.total],
+    ["Compliant", report.totals.compliant],
+    ["Non-compliant", report.totals.nonCompliant],
+    ["Not implemented", report.totals.notImplemented],
+    ["Inconclusive", report.totals.inconclusive],
   ];
   for (const [label, count] of rows) {
     lines.push(`| ${label} | ${count} |`);
   }
-  lines.push('');
+  lines.push("");
 
   for (const spec of report.specs) {
-    lines.push(`## ${spec.spec}`, '');
+    lines.push(`## ${spec.spec}`, "");
     lines.push(`**Spec File**: \`${spec.specPath}\``);
     lines.push(
       `**Status**: ${SPEC_LABELS[spec.status]} (${spec.summary.compliant}/${spec.summary.total} scenarios compliant)`,
@@ -63,42 +62,40 @@ export function renderMarkdown(report: ValidationReport): string {
     if (spec.error) {
       lines.push(`**Error**: ${escapeCell(spec.error)}`);
     }
-    lines.push('');
+    lines.push("");
 
     if (spec.warnings && spec.warnings.length > 0) {
-      lines.push('**Parse warnings**', '');
+      lines.push("**Parse warnings**", "");
       for (const warning of spec.warnings) {
-        const line = warning.line ? ` (line ${warning.line})` : '';
+        const line = warning.line ? ` (line ${warning.line})` : "";
         lines.push(`- ${escapeCell(warning.message)}${line}`);
       }
-      lines.push('');
+      lines.push("");
     }
 
     if (spec.findings.length === 0) {
-      lines.push('_No scenarios were found in this spec._', '');
+      lines.push("_No scenarios were found in this spec._", "");
       continue;
     }
 
-    lines.push(
-      '| Requirement | Scenario | Status | Class | Evidence | Suggested fix |',
-    );
-    lines.push('| --- | --- | --- | :---: | --- | --- |');
+    lines.push("| Requirement | Scenario | Status | Class | Evidence |");
+    lines.push("| --- | --- | --- | :---: | --- |");
 
     for (const finding of spec.findings) {
       lines.push(
-        `| ${escapeCell(finding.requirement)} | ${escapeCell(finding.scenario)} | ${FINDING_LABELS[finding.status]} | ${finding.classification ?? '—'} | ${escapeCell(evidenceText(finding))} | ${escapeCell(finding.fix || '—')} |`,
+        `| ${escapeCell(finding.requirement)} | ${escapeCell(finding.scenario)} | ${FINDING_LABELS[finding.status]} | ${finding.classification ?? "—"} | ${escapeCell(evidenceText(finding))} |`,
       );
     }
-    lines.push('');
+    lines.push("");
   }
 
-  lines.push('## Classification legend', '');
-  lines.push('| Class | Meaning |');
-  lines.push('| --- | --- |');
+  lines.push("## Classification legend", "");
+  lines.push("| Class | Meaning |");
+  lines.push("| --- | --- |");
   for (const [classification, meaning] of CLASSIFICATION_LEGEND) {
     lines.push(`| ${classification} | ${meaning} |`);
   }
-  lines.push('');
+  lines.push("");
 
-  return lines.join('\n');
+  return lines.join("\n");
 }

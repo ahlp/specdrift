@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PROMPT_PRESET_NAMES } from "../ai/prompt.js";
 
 export const PROVIDER_VALUES = ["lmstudio", "ollama", "deepseek"] as const;
 export const FORMAT_VALUES = ["markdown", "json", "text"] as const;
@@ -16,6 +17,7 @@ export const configSchema = z
     exclude: z.array(z.string()).optional(),
     format: z.enum(FORMAT_VALUES).optional(),
     failOn: z.enum(FAIL_ON_VALUES).optional(),
+    prompt: z.enum(PROMPT_PRESET_NAMES).optional(),
     concurrency: z.number().int().positive().optional(),
     maxTokens: z.number().int().positive().optional(),
     temperature: z.number().min(0).max(2).optional(),

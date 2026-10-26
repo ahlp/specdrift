@@ -85,7 +85,6 @@ describe("parseValidationResponse", () => {
       status: "compliant",
       classification: "B",
       evidence: { files: ["src/a.ts"], note: "" },
-      fix: "",
     });
     expect(response.findings[1]).toMatchObject({
       status: "non-compliant",
@@ -108,6 +107,13 @@ describe("parseValidationResponse", () => {
     ]);
     expect(response.findings[0]?.status).toBe("inconclusive");
   });
+
+  it("maps the legacy partial status to inconclusive", () => {
+    const response = parseValidationResponse([
+      { scenario: "Render SIM", status: "partial" },
+    ]);
+    expect(response.findings[0]?.status).toBe("inconclusive");
+  });
 });
 
 describe("reconcileFindings", () => {
@@ -119,7 +125,6 @@ describe("reconcileFindings", () => {
         status: "compliant",
         classification: null,
         evidence: { files: ["src/a.ts"], note: "ok" },
-        fix: "",
       },
       {
         requirement: "wrong requirement",
@@ -127,7 +132,6 @@ describe("reconcileFindings", () => {
         status: "non-compliant",
         classification: "D",
         evidence: { files: ["src/b.ts"], note: "bug" },
-        fix: "fix it",
       },
       {
         requirement: "Display decision",
@@ -135,7 +139,6 @@ describe("reconcileFindings", () => {
         status: "compliant",
         classification: null,
         evidence: { files: [], note: "" },
-        fix: "",
       },
     ]);
 
@@ -170,15 +173,13 @@ describe("summaries", () => {
         status: "compliant",
         classification: null,
         evidence: { files: [], note: "" },
-        fix: "",
       },
       {
         requirement: "Display decision",
         scenario: "Render NAO",
-        status: "partial",
-        classification: "B",
+        status: "non-compliant",
+        classification: "D",
         evidence: { files: [], note: "" },
-        fix: "",
       },
     ]);
 
@@ -186,20 +187,18 @@ describe("summaries", () => {
     expect(summary).toEqual({
       total: 2,
       compliant: 1,
-      partial: 1,
-      nonCompliant: 0,
+      nonCompliant: 1,
       notImplemented: 0,
       inconclusive: 0,
     });
-    expect(specStatusFromSummary(summary)).toBe("partial");
+    expect(specStatusFromSummary(summary)).toBe("non-compliant");
   });
 
-  it("prioritizes non-compliance over other statuses", () => {
+  it("prioritizes non-compliance over inconclusive, and defaults to compliant", () => {
     expect(
       specStatusFromSummary({
         total: 3,
         compliant: 1,
-        partial: 1,
         nonCompliant: 1,
         notImplemented: 0,
         inconclusive: 0,
@@ -210,11 +209,20 @@ describe("summaries", () => {
       specStatusFromSummary({
         total: 2,
         compliant: 1,
-        partial: 0,
         nonCompliant: 0,
         notImplemented: 0,
         inconclusive: 1,
       }),
     ).toBe("inconclusive");
+
+    expect(
+      specStatusFromSummary({
+        total: 2,
+        compliant: 2,
+        nonCompliant: 0,
+        notImplemented: 0,
+        inconclusive: 0,
+      }),
+    ).toBe("compliant");
   });
 });

@@ -24,7 +24,6 @@ function sampleReport(): ValidationReport {
         summary: {
           total: 2,
           compliant: 1,
-          partial: 0,
           nonCompliant: 1,
           notImplemented: 0,
           inconclusive: 0,
@@ -36,7 +35,6 @@ function sampleReport(): ValidationReport {
             status: "compliant",
             classification: null,
             evidence: { files: ["src/a.ts"], note: "ok" },
-            fix: "",
           },
           {
             requirement: "Display decision",
@@ -44,7 +42,6 @@ function sampleReport(): ValidationReport {
             status: "non-compliant",
             classification: "D",
             evidence: { files: ["src/b.ts"], note: "wrong theme" },
-            fix: "Fix the theme",
           },
         ],
       },
@@ -54,7 +51,6 @@ function sampleReport(): ValidationReport {
       requirements: 1,
       total: 2,
       compliant: 1,
-      partial: 0,
       nonCompliant: 1,
       notImplemented: 0,
       inconclusive: 0,
@@ -73,7 +69,6 @@ describe("renderMarkdown", () => {
     expect(markdown).toContain("✅ Compliant");
     expect(markdown).toContain("❌ Non-compliant");
     expect(markdown).toContain("`src/a.ts` — ok");
-    expect(markdown).toContain("Fix the theme");
     expect(markdown).toContain("| D | Regression/bug");
   });
 
@@ -120,7 +115,6 @@ describe("renderText", () => {
     expect(text).toContain("decision-display");
     expect(text).toContain("Render NAO");
     expect(text).toContain("[D]");
-    expect(text).toContain("Fix the theme");
     expect(text).toContain("Totals");
     expect(text).toContain("1/2 compliant");
     expect(text).not.toContain("\u001b[");

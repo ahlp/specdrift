@@ -40,7 +40,6 @@ const RESPONSE_WITH_ONE_FINDING = JSON.stringify({
       status: "compliant",
       classification: null,
       evidence: { files: ["src/DecisionDisplay.tsx"], note: "renders SIM" },
-      fix: "",
     },
   ],
 });
@@ -142,7 +141,6 @@ describe("validateProject", () => {
       requirements: 1,
       total: 2,
       compliant: 1,
-      partial: 0,
       nonCompliant: 0,
       notImplemented: 0,
       inconclusive: 1,

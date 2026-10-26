@@ -62,9 +62,14 @@ export function toProviderError(
   if (error instanceof ProviderError) return error;
 
   if (error instanceof HttpError) {
-    const body = error.body ? `: ${error.body}` : "";
+    const detail =
+      error.status === 0
+        ? `: ${error.message.replace(/^request failed: /, "")}`
+        : error.body
+          ? `: ${error.body}`
+          : "";
     return new ProviderError(
-      `${provider} request failed (HTTP ${error.status})${body}`,
+      `${provider} request failed (HTTP ${error.status})${detail}`,
       provider,
       error.status || undefined,
     );
@@ -79,14 +84,23 @@ export function extractOpenAiContent(
   data: unknown,
   provider: ProviderId,
 ): string {
-  const choices = (
-    data as { choices?: Array<{ message?: { content?: unknown } }> } | null
-  )?.choices;
-  const content = choices?.[0]?.message?.content;
+  const message = (
+    data as {
+      choices?: Array<{
+        message?: { content?: unknown; reasoning_content?: unknown };
+      }>;
+    } | null
+  )?.choices?.[0]?.message;
+  const content = message?.content;
 
   if (typeof content !== "string" || content.trim() === "") {
+    const reasoning = message?.reasoning_content;
+    const hint =
+      typeof reasoning === "string" && reasoning.trim() !== ""
+        ? " (the model produced only reasoning_content; increase --max-tokens or choose a non-reasoning model)"
+        : "";
     throw new ProviderError(
-      `${provider} returned an empty chat completion`,
+      `${provider} returned an empty chat completion${hint}`,
       provider,
     );
   }

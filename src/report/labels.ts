@@ -8,7 +8,6 @@ import type {
 
 export const FINDING_LABELS: Record<FindingStatus, string> = {
   compliant: "✅ Compliant",
-  partial: "🟡 Partial",
   "non-compliant": "❌ Non-compliant",
   "not-implemented": "⚪ Not implemented",
   inconclusive: "❔ Inconclusive",
@@ -16,7 +15,6 @@ export const FINDING_LABELS: Record<FindingStatus, string> = {
 
 export const FINDING_ICONS: Record<FindingStatus, string> = {
   compliant: "✔",
-  partial: "◐",
   "non-compliant": "✖",
   "not-implemented": "○",
   inconclusive: "?",
@@ -24,7 +22,6 @@ export const FINDING_ICONS: Record<FindingStatus, string> = {
 
 export const FINDING_STATUS_NAMES: Record<FindingStatus, string> = {
   compliant: "compliant",
-  partial: "partial",
   "non-compliant": "non-compliant",
   "not-implemented": "not implemented",
   inconclusive: "inconclusive",
@@ -32,21 +29,18 @@ export const FINDING_STATUS_NAMES: Record<FindingStatus, string> = {
 
 export const SPEC_LABELS: Record<SpecStatus, string> = {
   compliant: "✅ Compliant",
-  partial: "🟡 Partial",
   "non-compliant": "❌ Non-compliant",
   inconclusive: "❔ Inconclusive",
 };
 
 export const SPEC_ICONS: Record<SpecStatus, string> = {
   compliant: "✔",
-  partial: "◐",
   "non-compliant": "✖",
   inconclusive: "?",
 };
 
 export const SPEC_STATUS_NAMES: Record<SpecStatus, string> = {
   compliant: "compliant",
-  partial: "partial",
   "non-compliant": "non-compliant",
   inconclusive: "inconclusive",
 };

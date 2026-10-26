@@ -9,15 +9,15 @@
  *   npm run build
  *   node test/manual/run-fixture.mjs [path-to-project]
  */
-import { spawn } from 'node:child_process';
-import { createServer } from 'node:http';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { spawn } from "node:child_process";
+import { createServer } from "node:http";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(here, '..', '..');
+const repoRoot = resolve(here, "..", "..");
 const fixtureRoot =
-  process.argv[2] ?? resolve(repoRoot, '..', 'flood-status-recife');
+  process.argv[2] ?? resolve(repoRoot, "..", "flood-status-recife");
 
 function extractExpectedScenarios(prompt) {
   const scenarios = [];
@@ -35,27 +35,27 @@ function extractExpectedScenarios(prompt) {
 }
 
 const server = createServer((request, response) => {
-  response.setHeader('connection', 'close');
+  response.setHeader("connection", "close");
 
-  if (request.method === 'GET' && request.url === '/v1/models') {
-    response.writeHead(200, { 'content-type': 'application/json' });
-    response.end(JSON.stringify({ data: [{ id: 'mock-model' }] }));
+  if (request.method === "GET" && request.url === "/v1/models") {
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify({ data: [{ id: "mock-model" }] }));
     return;
   }
 
-  if (request.method === 'POST' && request.url === '/v1/chat/completions') {
-    let raw = '';
-    request.setEncoding('utf8');
-    request.on('data', (chunk) => {
+  if (request.method === "POST" && request.url === "/v1/chat/completions") {
+    let raw = "";
+    request.setEncoding("utf8");
+    request.on("data", (chunk) => {
       raw += chunk;
     });
-    request.on('end', () => {
-      let userPrompt = '';
+    request.on("end", () => {
+      let userPrompt = "";
       try {
         const payload = JSON.parse(raw);
         userPrompt =
-          payload.messages?.find((message) => message.role === 'user')
-            ?.content ?? '';
+          payload.messages?.find((message) => message.role === "user")
+            ?.content ?? "";
       } catch {
         // fall through with an empty prompt
       }
@@ -64,14 +64,13 @@ const server = createServer((request, response) => {
         ({ requirement, scenario }) => ({
           requirement,
           scenario,
-          status: 'compliant',
+          status: "compliant",
           classification: null,
-          evidence: { files: [], note: 'mock provider' },
-          fix: '',
+          evidence: { files: [], note: "mock provider" },
         }),
       );
 
-      response.writeHead(200, { 'content-type': 'application/json' });
+      response.writeHead(200, { "content-type": "application/json" });
       response.end(
         JSON.stringify({
           choices: [
@@ -92,37 +91,37 @@ const server = createServer((request, response) => {
 });
 
 await new Promise((resolveListen) =>
-  server.listen(0, '127.0.0.1', resolveListen),
+  server.listen(0, "127.0.0.1", resolveListen),
 );
 
 const address = server.address();
-if (!address || typeof address === 'string') {
-  throw new Error('mock server did not bind to a TCP port');
+if (!address || typeof address === "string") {
+  throw new Error("mock server did not bind to a TCP port");
 }
 
 const child = spawn(
   process.execPath,
   [
-    resolve(repoRoot, 'dist', 'cli', 'index.js'),
-    'openspec',
-    'validate',
-    '--root',
+    resolve(repoRoot, "dist", "cli", "index.js"),
+    "openspec",
+    "validate",
+    "--root",
     fixtureRoot,
-    '--specs-dir',
-    resolve(fixtureRoot, 'openspec'),
-    '--provider',
-    'lmstudio',
-    '--base-url',
+    "--specs-dir",
+    resolve(fixtureRoot, "openspec"),
+    "--provider",
+    "lmstudio",
+    "--base-url",
     `http://127.0.0.1:${address.port}/v1`,
-    '--model',
-    'mock-model',
-    '--format',
-    'text',
+    "--model",
+    "mock-model",
+    "--format",
+    "text",
   ],
-  { stdio: 'inherit' },
+  { stdio: "inherit" },
 );
 
-child.on('exit', (code) => {
+child.on("exit", (code) => {
   server.closeAllConnections();
   server.close(() => process.exit(code ?? 0));
 });

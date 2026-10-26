@@ -5,7 +5,7 @@ export class HttpError extends Error {
     readonly body: string,
   ) {
     super(message);
-    this.name = 'HttpError';
+    this.name = "HttpError";
   }
 }
 
@@ -15,6 +15,24 @@ export interface FetchJsonOptions {
   body?: unknown;
   timeoutMs?: number;
   signal?: AbortSignal;
+}
+
+function describeErrorCause(cause: unknown): string {
+  if (!cause) return "";
+
+  if (cause instanceof AggregateError) {
+    return cause.errors
+      .map((entry) => describeErrorCause(entry))
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  if (cause instanceof Error) {
+    const code = (cause as NodeJS.ErrnoException).code;
+    return code ? `${code}: ${cause.message}` : cause.message;
+  }
+
+  return String(cause);
 }
 
 /**
@@ -39,23 +57,23 @@ export async function fetchJson(
   const onAbort = (): void => controller.abort();
   if (options.signal) {
     if (options.signal.aborted) controller.abort();
-    else options.signal.addEventListener('abort', onAbort, { once: true });
+    else options.signal.addEventListener("abort", onAbort, { once: true });
   }
 
   try {
     const headers: Record<string, string> = {
-      accept: 'application/json',
+      accept: "application/json",
       ...(options.headers ?? {}),
     };
 
     let body: string | undefined;
     if (options.body !== undefined) {
-      headers['content-type'] = 'application/json';
+      headers["content-type"] = "application/json";
       body = JSON.stringify(options.body);
     }
 
     const response = await fetch(url, {
-      method: options.method ?? 'GET',
+      method: options.method ?? "GET",
       headers,
       body,
       signal: controller.signal,
@@ -77,7 +95,7 @@ export async function fetchJson(
       return JSON.parse(text) as unknown;
     } catch {
       throw new HttpError(
-        'response is not valid JSON',
+        "response is not valid JSON",
         response.status,
         text.slice(0, 1_000),
       );
@@ -85,14 +103,21 @@ export async function fetchJson(
   } catch (error) {
     if (error instanceof HttpError) throw error;
     if (timedOut) {
-      throw new HttpError(`request timed out after ${timeoutMs}ms`, 0, '');
+      throw new HttpError(`request timed out after ${timeoutMs}ms`, 0, "");
     }
     const message = error instanceof Error ? error.message : String(error);
-    throw new HttpError(`request failed: ${message}`, 0, '');
+    const cause = describeErrorCause(
+      (error as { cause?: unknown } | null)?.cause,
+    );
+    throw new HttpError(
+      `request failed: ${message}${cause ? ` (${cause})` : ""}`,
+      0,
+      "",
+    );
   } finally {
     clearTimeout(timer);
     if (options.signal) {
-      options.signal.removeEventListener('abort', onAbort);
+      options.signal.removeEventListener("abort", onAbort);
     }
   }
 }

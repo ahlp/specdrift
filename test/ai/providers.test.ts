@@ -3,7 +3,12 @@ import { resolveProvider } from "../../src/ai/detect.js";
 import { createDeepSeekProvider } from "../../src/ai/deepseek.js";
 import { createLmStudioProvider } from "../../src/ai/lmstudio.js";
 import { createOllamaProvider } from "../../src/ai/ollama.js";
-import { ProviderError } from "../../src/ai/provider.js";
+import { HttpError } from "../../src/ai/http.js";
+import {
+  extractOpenAiContent,
+  ProviderError,
+  toProviderError,
+} from "../../src/ai/provider.js";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -275,5 +280,50 @@ describe("resolveProvider", () => {
     );
 
     await expect(resolveProvider()).rejects.toThrow(/no AI provider available/);
+  });
+});
+
+describe("AI output and error surfacing", () => {
+  it("includes the transport cause for HTTP 0 failures", () => {
+    const error = toProviderError(
+      new HttpError("request timed out after 120000ms", 0, ""),
+      "lmstudio",
+    );
+
+    expect(error.message).toBe(
+      "lmstudio request failed (HTTP 0): request timed out after 120000ms",
+    );
+  });
+
+  it("includes the response body for HTTP errors", () => {
+    const error = toProviderError(
+      new HttpError("HTTP 400 Bad Request", 400, '{"error":"bad model"}'),
+      "lmstudio",
+    );
+
+    expect(error.message).toContain("bad model");
+    expect(error.status).toBe(400);
+  });
+
+  it("hints when a reasoning model returns only reasoning_content", () => {
+    expect(() =>
+      extractOpenAiContent(
+        {
+          choices: [
+            { message: { content: "", reasoning_content: "thinking" } },
+          ],
+        },
+        "lmstudio",
+      ),
+    ).toThrow(/reasoning_content/);
+  });
+
+  it("returns normal content", () => {
+    expect(
+      extractOpenAiContent(
+        { choices: [{ message: { content: "hello" } }] },
+        "lmstudio",
+      ),
+    ).toBe("hello");
   });
 });

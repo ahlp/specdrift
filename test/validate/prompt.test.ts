@@ -1,76 +1,81 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 import {
   buildMessages,
   buildUserPrompt,
+  resolveSystemPrompt,
   selectRelevantFiles,
-} from '../../src/ai/prompt.js';
-import { parseSpec } from '../../src/openspec/parse.js';
-import type { RepoContext, RepoFile } from '../../src/repo/types.js';
+  SYSTEM_PROMPT_DECISION_TREE,
+  SYSTEM_PROMPT_MINIMAL,
+  SYSTEM_PROMPT_PERMISSIVE,
+  SYSTEM_PROMPT_RTF,
+} from "../../src/ai/prompt.js";
+import { parseSpec } from "../../src/openspec/parse.js";
+import type { RepoContext, RepoFile } from "../../src/repo/types.js";
 
 const SPEC = parseSpec(
-  'decision-display',
-  'spec.md',
+  "decision-display",
+  "spec.md",
   [
-    '## Purpose',
-    '',
-    'Render the daily decision with DecisionDisplay.',
-    '',
-    '## Requirements',
-    '',
-    '### Requirement: Display decision',
-    '',
-    'The system SHALL render the decision.',
-    '',
-    '#### Scenario: Render SIM',
-    '',
-    '- **GIVEN** the API returns SIM',
-    '- **WHEN** the page loads',
-    '- **THEN** SIM is shown',
-  ].join('\n'),
+    "## Purpose",
+    "",
+    "Render the daily decision with DecisionDisplay.",
+    "",
+    "## Requirements",
+    "",
+    "### Requirement: Display decision",
+    "",
+    "The system SHALL render the decision.",
+    "",
+    "#### Scenario: Render SIM",
+    "",
+    "- **GIVEN** the API returns SIM",
+    "- **WHEN** the page loads",
+    "- **THEN** SIM is shown",
+  ].join("\n"),
 );
 
 function file(path: string, content: string): RepoFile {
   return {
     path,
     content,
-    kind: 'source',
-    language: 'typescript',
-    bytes: Buffer.byteLength(content, 'utf8'),
+    kind: "source",
+    language: "typescript",
+    bytes: Buffer.byteLength(content, "utf8"),
     truncated: false,
   };
 }
 
 function repo(files: RepoFile[]): RepoContext {
   return {
-    root: '/repo',
+    root: "/repo",
     files,
     skipped: [],
     totalBytes: files.reduce(
-      (total, entry) => total + Buffer.byteLength(entry.content, 'utf8'),
+      (total, entry) => total + Buffer.byteLength(entry.content, "utf8"),
       0,
     ),
     budgetExhausted: false,
   };
 }
 
-describe('selectRelevantFiles', () => {
-  it('ranks files that match the spec ahead of unrelated files', () => {
+describe("selectRelevantFiles", () => {
+  it("ranks files that match the spec ahead of unrelated files", () => {
     const context = repo([
-      file('src/other.ts', 'export const unrelated = "nothing to see here";'),
+      file("src/other.ts", 'export const unrelated = "nothing to see here";'),
       file(
-        'src/DecisionDisplay.tsx',
+        "src/DecisionDisplay.tsx",
         'export function DecisionDisplay() { return "SIM"; }',
       ),
     ]);
 
     const selected = selectRelevantFiles(context, SPEC, 1000);
 
-    expect(selected[0]?.path).toBe('src/DecisionDisplay.tsx');
+    expect(selected[0]?.path).toBe("src/DecisionDisplay.tsx");
   });
 
-  it('respects the byte budget and truncates the final file', () => {
+  it("respects the byte budget and truncates the final file", () => {
     const context = repo([
-      file('src/DecisionDisplay.tsx', 'DecisionDisplay '.repeat(50)),
+      file("src/DecisionDisplay.tsx", "DecisionDisplay ".repeat(50)),
     ]);
 
     const selected = selectRelevantFiles(context, SPEC, 100);
@@ -78,57 +83,93 @@ describe('selectRelevantFiles', () => {
     expect(selected).toHaveLength(1);
     expect(selected[0]?.truncated).toBe(true);
     expect(
-      Buffer.byteLength(selected[0]?.content ?? '', 'utf8'),
+      Buffer.byteLength(selected[0]?.content ?? "", "utf8"),
     ).toBeLessThanOrEqual(100);
   });
 });
 
-describe('buildUserPrompt', () => {
-  it('includes the spec, expected scenarios and relevant files', () => {
+describe("buildUserPrompt", () => {
+  it("includes the spec, expected scenarios and relevant files", () => {
     const context = repo([
       file(
-        'src/DecisionDisplay.tsx',
+        "src/DecisionDisplay.tsx",
         'export function DecisionDisplay() { return "SIM"; }',
       ),
     ]);
 
     const prompt = buildUserPrompt({ spec: SPEC, repo: context });
 
-    expect(prompt).toContain('# Capability: decision-display');
-    expect(prompt).toContain('Render the daily decision');
-    expect(prompt).toContain('# Expected scenarios');
+    expect(prompt).toContain("# Capability: decision-display");
+    expect(prompt).toContain("Render the daily decision");
+    expect(prompt).toContain("# Expected scenarios");
     expect(prompt).toContain('"Render SIM"');
-    expect(prompt).toContain('## FILE: src/DecisionDisplay.tsx');
-    expect(prompt).toContain('DecisionDisplay');
+    expect(prompt).toContain("## FILE: src/DecisionDisplay.tsx");
+    expect(prompt).toContain("DecisionDisplay");
   });
 
-  it('includes config context and rules when present', () => {
+  it("includes config context and rules when present", () => {
     const context = repo([]);
     const prompt = buildUserPrompt({
       spec: SPEC,
       repo: context,
       config: {
         raw: {},
-        context: 'Tech stack: TypeScript',
-        rules: { proposal: ['Keep it short'] },
+        context: "Tech stack: TypeScript",
+        rules: { proposal: ["Keep it short"] },
       },
     });
 
-    expect(prompt).toContain('# Project context');
-    expect(prompt).toContain('Tech stack: TypeScript');
-    expect(prompt).toContain('# Project rules');
-    expect(prompt).toContain('Keep it short');
+    expect(prompt).toContain("# Project context");
+    expect(prompt).toContain("Tech stack: TypeScript");
+    expect(prompt).toContain("# Project rules");
+    expect(prompt).toContain("Keep it short");
   });
 });
 
-describe('buildMessages', () => {
-  it('returns a system prompt with the taxonomy and a user prompt', () => {
+describe("buildMessages", () => {
+  it("returns a system prompt with the taxonomy and a user prompt", () => {
     const messages = buildMessages({ spec: SPEC, repo: repo([]) });
 
     expect(messages).toHaveLength(2);
-    expect(messages[0]?.role).toBe('system');
-    expect(messages[0]?.content).toContain('A = spec drift');
-    expect(messages[0]?.content).toContain('return ONLY a JSON object');
-    expect(messages[1]?.role).toBe('user');
+    expect(messages[0]?.role).toBe("system");
+    expect(messages[0]?.content).toContain("A = spec drift");
+    expect(messages[0]?.content).toContain("ONLY a JSON object");
+    expect(messages[1]?.role).toBe("user");
+  });
+
+  it("allows overriding the system prompt", () => {
+    const messages = buildMessages(
+      { spec: SPEC, repo: repo([]) },
+      "CUSTOM SYSTEM PROMPT",
+    );
+
+    expect(messages[0]?.content).toBe("CUSTOM SYSTEM PROMPT");
+  });
+});
+
+describe("resolveSystemPrompt", () => {
+  it("defaults to the rtf prompt", () => {
+    expect(resolveSystemPrompt()).toBe(SYSTEM_PROMPT_RTF);
+    expect(resolveSystemPrompt("unknown")).toBe(SYSTEM_PROMPT_RTF);
+  });
+
+  it("resolves the decision-tree and minimal presets", () => {
+    expect(resolveSystemPrompt("decision-tree")).toBe(
+      SYSTEM_PROMPT_DECISION_TREE,
+    );
+    expect(resolveSystemPrompt("minimal")).toBe(SYSTEM_PROMPT_MINIMAL);
+    expect(resolveSystemPrompt("permissive")).toBe(SYSTEM_PROMPT_PERMISSIVE);
+  });
+
+  it("resolves the rtf preset with Role/Task/Format sections", () => {
+    const rtf = resolveSystemPrompt("rtf");
+    expect(rtf).toContain("Role:");
+    expect(rtf).toContain("Task:");
+    expect(rtf).toContain("Format:");
+  });
+
+  it("the decision-tree preset contains the decision tree", () => {
+    expect(SYSTEM_PROMPT_DECISION_TREE).toContain("decision tree");
+    expect(SYSTEM_PROMPT_DECISION_TREE).toContain("Do not write a suggestion");
   });
 });

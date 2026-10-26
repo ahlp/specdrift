@@ -25,8 +25,6 @@ function paintStatus(
   switch (status) {
     case "compliant":
       return chalk.green(text);
-    case "partial":
-      return chalk.yellow(text);
     case "non-compliant":
       return chalk.red(text);
     case "not-implemented":
@@ -94,9 +92,6 @@ export function renderText(
       if (evidence !== "—") {
         lines.push(dim(`      evidence: ${evidence}`));
       }
-      if (finding.fix) {
-        lines.push(dim(`      fix: ${finding.fix}`));
-      }
     }
 
     lines.push("");
@@ -107,7 +102,6 @@ export function renderText(
     `  ${report.totals.compliant}/${report.totals.total} compliant · ` +
       `${report.totals.nonCompliant} non-compliant · ` +
       `${report.totals.notImplemented} not implemented · ` +
-      `${report.totals.partial} partial · ` +
       `${report.totals.inconclusive} inconclusive`,
   );
 

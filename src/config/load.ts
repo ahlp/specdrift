@@ -24,6 +24,7 @@ export interface ResolvedConfig {
   exclude: string[];
   format: "markdown" | "json" | "text";
   failOn: "error" | "warning" | "non-compliant";
+  prompt?: SpecdriftConfig["prompt"];
   concurrency: number;
   maxTokens?: number;
   temperature?: number;
@@ -121,6 +122,9 @@ function configFromEnv(env: NodeJS.ProcessEnv): Partial<SpecdriftConfig> {
 
   const failOn = readString(env, "SPECDRIFT_FAIL_ON");
   if (failOn) config.failOn = failOn as SpecdriftConfig["failOn"];
+
+  const prompt = readString(env, "SPECDRIFT_PROMPT");
+  if (prompt) config.prompt = prompt as SpecdriftConfig["prompt"];
 
   const concurrency = readNumber(env, "SPECDRIFT_CONCURRENCY");
   if (concurrency !== undefined) config.concurrency = concurrency;

@@ -1,7 +1,11 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { Command } from "commander";
-import { ProviderError, resolveProvider } from "../../ai/index.js";
+import {
+  ProviderError,
+  resolveProvider,
+  resolveSystemPrompt,
+} from "../../ai/index.js";
 import { loadConfig } from "../../config/index.js";
 import type { ResolvedConfig, SpecdriftConfig } from "../../config/index.js";
 import {
@@ -23,10 +27,12 @@ export interface ValidateCliOptions {
   format?: string;
   output: string;
   failOn?: string;
+  prompt?: string;
   include?: string[];
   exclude?: string[];
   maxTokens?: number;
   concurrency?: number;
+  timeout?: number;
   verbose: boolean;
 }
 
@@ -46,11 +52,17 @@ function cliOverrides(options: ValidateCliOptions): Partial<SpecdriftConfig> {
   if (options.failOn !== undefined) {
     overrides.failOn = options.failOn as SpecdriftConfig["failOn"];
   }
+  if (options.prompt !== undefined) {
+    overrides.prompt = options.prompt as SpecdriftConfig["prompt"];
+  }
   if (options.include !== undefined) overrides.include = options.include;
   if (options.exclude !== undefined) overrides.exclude = options.exclude;
   if (options.maxTokens !== undefined) overrides.maxTokens = options.maxTokens;
   if (options.concurrency !== undefined) {
     overrides.concurrency = options.concurrency;
+  }
+  if (options.timeout !== undefined) {
+    overrides.timeoutMs = options.timeout;
   }
 
   return overrides;
@@ -61,7 +73,7 @@ function cliOverrides(options: ValidateCliOptions): Partial<SpecdriftConfig> {
  *
  * - `error`: fail only when validation could not run for a spec.
  * - `non-compliant` (default): fail on non-compliant or unimplemented scenarios.
- * - `warning`: also fail on partial or inconclusive scenarios.
+ * - `warning`: also fail on inconclusive scenarios or spec errors.
  */
 export function decideExitCode(
   report: ValidationReport,
@@ -77,8 +89,7 @@ export function decideExitCode(
 
   if (
     failOn === "warning" &&
-    (report.totals.partial > 0 ||
-      report.totals.inconclusive > 0 ||
+    (report.totals.inconclusive > 0 ||
       report.specs.some((spec) => Boolean(spec.error)))
   ) {
     return 1;
@@ -142,6 +153,10 @@ export function registerValidateCommand(parent: Command): void {
       "--fail-on <level>",
       "exit non-zero at: error | warning | non-compliant",
     )
+    .option(
+      "--prompt <name>",
+      "prompt preset: permissive | decision-tree | minimal | rtf (default: rtf)",
+    )
     .option("--include <glob...>", "restrict source files scanned")
     .option("--exclude <glob...>", "extra ignore globs")
     .option("--max-tokens <n>", "cap per-request output tokens", (value) =>
@@ -149,6 +164,11 @@ export function registerValidateCommand(parent: Command): void {
     )
     .option("--concurrency <n>", "parallel AI requests per spec", (value) =>
       Number.parseInt(value, 10),
+    )
+    .option(
+      "--timeout <ms>",
+      "provider request timeout in milliseconds",
+      (value) => Number.parseInt(value, 10),
     )
     .option("--verbose", "print prompts, timing and raw responses", false)
     .action(async (cliOptions: ValidateCliOptions) => {
@@ -210,6 +230,7 @@ export function registerValidateCommand(parent: Command): void {
           maxTokens: config.maxTokens,
           concurrency: config.concurrency,
           maxContextBytes: config.maxContextBytes,
+          systemPrompt: resolveSystemPrompt(config.prompt),
           verbose: cliOptions.verbose,
           logger: (message) => process.stderr.write(`${message}\n`),
           onSpecStart: (spec) =>
